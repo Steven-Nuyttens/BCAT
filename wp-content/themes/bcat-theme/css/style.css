@@ -1,0 +1,16 @@
+/* 3rd party packages */
+@import "normalize.css";
+@import "../node_modules/@glidejs/glide/dist/css/glide.core.min.css";
+
+/* SASS and Global'ish Stuff */
+@import "base/variables";
+@import "base/baseline";
+@import "base/utility-classes";
+
+/* import own scss */
+@import "modules/bcat-header.scss";
+@import "modules/bcat-footer.scss";
+@import "modules/";
+@import "modules/";
+@import "modules/";
+@import "modules/";
