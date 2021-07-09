@@ -14,3 +14,8 @@ function bcat_features() {
 }
 
 add_action('after_setup_theme', 'bcat_features');
+
+
+
+
+

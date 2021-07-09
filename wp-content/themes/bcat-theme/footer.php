@@ -42,7 +42,7 @@
                 <nav>
                     <ul class="min-list social-icons-list group">
                         <li>
-                            <a href="#" class="social-color-facebook"><i class="fa fa-facebook" aria-hidden="true"></i></a>
+                            <a href="https://www.facebook.com/groups/124303224298827/" class="social-color-facebook"><i class="fa fa-facebook" aria-hidden="true"></i></a>
                         </li>
                         <li>
                             <a href="#" class="social-color-twitter"><i class="fa fa-twitter" aria-hidden="true"></i></a>
@@ -54,7 +54,7 @@
                             <a href="#" class="social-color-linkedin"><i class="fa fa-linkedin" aria-hidden="true"></i></a>
                         </li>
                         <li>
-                            <a href="#" class="social-color-instagram"><i class="fa fa-instagram" aria-hidden="true"></i></a>
+                            <a href="https://www.instagram.com/bcat.be/" class="social-color-instagram"><i class="fa fa-instagram" aria-hidden="true"></i></a>
                         </li>
                     </ul>
                 </nav>
