@@ -36,7 +36,7 @@
                     </nav>
                 </div>
             </div>
-
+            
             <div class="site-footer__col-four">
                 <h3 class="headline headline--small">Connect With Us</h3>
                 <nav>
@@ -61,6 +61,7 @@
             </div>
         </div>
     </div>
+    <div><i class="fa fa-copyright" aria-hidden="true"></i>Copyright 2021 - Basketclub Asse-Ternat, All Rights Reserved</div>
 </footer>
 
 <?php wp_footer(); ?>

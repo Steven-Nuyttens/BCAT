@@ -14,6 +14,7 @@
         <div class="site-header__menu group">
           <nav class="main-navigation">
             <ul>
+            <li><a href="<?php echo site_url('/blog'); ?>">Nieuwtjes</a></li>
               <li><a href="#">Sporthallen</a></li>
               <li><a href="<?php echo site_url('/club-info'); ?>">Club Info</a></li>
               <li><a href="<?php echo site_url('/ploegen'); ?>">Ploegen</a></li>

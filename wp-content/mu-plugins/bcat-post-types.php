@@ -1,18 +1,38 @@
 <?php
-    function bcat_post_types() {
-        register_post_type('event', array(
-          'public' => true,
-          'labels' => array(
-            'name' => 'Events',
-            'add_new_item' => 'Add New Event',
-            'edit_item' => 'Eddit Event',
-            'all_items' => 'All Events',
-            'singular_name' => 'Event'
-          ),
-          'menu_icon' => 'dashicons-calendar'
-      ));
-      }
-      
-      
-      add_action('init', 'bcat_post_types');
-?>
+
+function university_post_types() {
+
+  // Event post type
+
+  register_post_type('event', array(
+    'public' => true,
+    'show_in_rest' => true,
+    'labels' => array(
+      'name' => 'Events',
+      'add_new_item' => 'Add New Event',
+      'edit_item' => 'Edit Event',
+      'all_items' => 'All Events',
+      'singular_name' => 'Event'
+    ),
+    'menu_icon' => 'dashicons-calendar'
+  ));
+
+  // Coach post type
+
+  register_post_type('coach', array(
+    'supports' => array('title', 'editor'),
+    'rewrite' => array('slug' => 'coaches'),
+    'has_archive' => true,
+    'public' => true,
+    'labels' => array(
+      'name' => 'Coaches',
+      'add_new_item' => 'Add New Coach',
+      'edit_item' => 'Edit Coach',
+      'all_items' => 'All Coaches',
+      'singular_name' => 'Coach'
+    ),
+    'menu_icon' => 'dashicons-businessman'
+  ));
+}
+
+add_action('init', 'university_post_types');
