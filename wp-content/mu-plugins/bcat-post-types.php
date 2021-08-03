@@ -5,6 +5,8 @@ function university_post_types() {
   // Event post type
 
   register_post_type('event', array(
+    'has_archive' => true,
+    'supports' => array('title', 'editor', 'excerpt'),
     'public' => true,
     'show_in_rest' => true,
     'labels' => array(
@@ -15,6 +17,24 @@ function university_post_types() {
       'singular_name' => 'Event'
     ),
     'menu_icon' => 'dashicons-calendar'
+  ));
+
+
+  // Team post type
+
+  register_post_type('team', array(
+    'supports' => array('title', 'editor'),
+    'rewrite' => array('slug' => 'teams'),
+    'has_archive' => true,
+    'public' => true,
+    'labels' => array(
+      'name' => 'Teams',
+      'add_new_item' => 'Add New Team',
+      'edit_item' => 'Edit Team',
+      'all_items' => 'All Teams',
+      'singular_name' => 'Team'
+    ),
+    'menu_icon' => 'dashicons-groups'
   ));
 
   // Coach post type

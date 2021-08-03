@@ -29,6 +29,9 @@ get_header(); ?>
   <?php }
   echo paginate_links();
 ?>
+
+<hr class='section-break'>
+<p><a href="<?php echo site_url('/past-events')?>">Check out past events</a></p>
 </div>
 
 <?php get_footer();
