@@ -53,6 +53,23 @@ function university_post_types() {
     ),
     'menu_icon' => 'dashicons-businessman'
   ));
+
+  // Sporthal post type
+
+  register_post_type('sporthal', array(
+    'supports' => array('title', 'editor'),
+    'rewrite' => array('slug' => 'sporthallen'),
+    'has_archive' => true,
+    'public' => true,
+    'labels' => array(
+      'name' => 'Sporthallen',
+      'add_new_item' => 'Add New Sporthal',
+      'edit_item' => 'Edit Sporthal',
+      'all_items' => 'All Sporthallen',
+      'singular_name' => 'Sporthal',
+    ),
+    'menu_icon' => 'dashicons-bank'
+  ));
 }
 
 add_action('init', 'university_post_types');

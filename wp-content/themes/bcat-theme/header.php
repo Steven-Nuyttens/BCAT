@@ -18,6 +18,7 @@
               <li><a href="#">Sporthallen</a></li>
               <li><a href="<?php echo site_url('/club-info'); ?>">Club Info</a></li>
               <li><a href="<?php echo site_url('/teams'); ?>">Ploegen</a></li>
+              <li><a href="<?php echo site_url('/coaches'); ?>">Coaches</a></li>
               <li><a href="<?php echo site_url('/praktisch'); ?>">Praktisch</a></li>
               <li><a href="#">Medische Cel</a></li>
               <li><a href="#">Contact</a></li>

@@ -5,7 +5,7 @@
   while(have_posts()) {
     the_post(); ?>
     <div class="page-banner">
-      <div class="page-banner__bg-image" style="background-image: url(<?php echo get_theme_file_uri('/images/ocean.jpg') ?>);"></div>
+      <div class="page-banner__bg-image" style="background-image: url(<?php echo get_theme_file_uri('/images/panoramic-basketball.jpg') ?>);"></div>
       <div class="page-banner__content container container--narrow">
         <h1 class="page-banner__title"><?php the_title(); ?></h1>
         <div class="page-banner__intro">
@@ -20,6 +20,37 @@
       </div>
 
       <div class="generic-content"><?php the_content(); ?></div>
+
+      <?php
+
+          // custom field relation between events and teams
+
+            $relatedTeams = get_field('teams');
+            
+            if($relatedTeams) {
+
+            echo '<hr>';
+            foreach($relatedTeams as $team) { ?>
+            <p>Team Tag <a href="<?php echo get_the_permalink($team) ?>"><?php echo get_the_title($team); ?></a></p>
+                
+            <?php
+            }
+            }
+            
+          // custom field relation between events and coaches
+            
+            $relatedCoaches = get_field('related_coaches');
+            
+            if($relatedCoaches) {
+
+            echo '<hr>';
+            foreach($relatedCoaches as $coach) { ?>
+            <p>Coach Tag <a href="<?php echo get_the_permalink($coach) ?>"><?php echo get_the_title($coach); ?></a></p>
+                
+            <?php
+            }
+            }
+        ?>
 
     </div>
     

@@ -5,7 +5,7 @@
   while(have_posts()) {
     the_post(); ?>
     <div class="page-banner">
-      <div class="page-banner__bg-image" style="background-image: url(<?php echo get_theme_file_uri('/images/ocean.jpg') ?>);"></div>
+      <div class="page-banner__bg-image" style="background-image: url(<?php echo get_theme_file_uri('/images/panoramic-basketball.jpg') ?>);"></div>
       <div class="page-banner__content container container--narrow">
         <h1 class="page-banner__title"><?php the_title(); ?></h1>
         <div class="page-banner__intro">
@@ -20,6 +20,20 @@
       </div>
 
       <div class="generic-content"><?php the_content(); ?></div>
+
+      <?php
+            $relatedTeams = get_field('teams');
+            
+            if($relatedTeams) {
+
+            echo '<hr>';
+            foreach($relatedTeams as $team) { ?>
+            <p>Head Coach <a href="<?php echo get_the_permalink($team) ?>"><?php echo get_the_title($team); ?></a></p>
+                
+            <?php
+            }
+            }
+        ?>
 
     </div>
     

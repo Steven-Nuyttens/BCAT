@@ -24,13 +24,14 @@
         <?php
             $relatedCoaches = get_field('related_coaches');
             
-
+            if($relatedCoaches) {
 
             echo '<hr>';
             foreach($relatedCoaches as $coach) { ?>
             <p>coached by <a href="<?php echo get_the_permalink($coach) ?>"><?php echo get_the_title($coach); ?></a></p>
                 
             <?php
+            }
             }
         ?>
     </div>
