@@ -22,6 +22,7 @@
               <li><a href="<?php echo site_url('/praktisch'); ?>">Praktisch</a></li>
               <li><a href="#">Medische Cel</a></li>
               <li><a href="#">Contact</a></li>
+              <li><a href="<?php echo site_url('/shop'); ?>">Shop</a></li>
             </ul>
           </nav>
           <div class="site-header__util">
