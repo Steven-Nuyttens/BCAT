@@ -40,7 +40,7 @@ function university_post_types() {
   // Coach post type
 
   register_post_type('coach', array(
-    'supports' => array('title', 'editor'),
+    'supports' => array('title', 'editor', 'thumbnail'),
     'rewrite' => array('slug' => 'coaches'),
     'has_archive' => true,
     'public' => true,

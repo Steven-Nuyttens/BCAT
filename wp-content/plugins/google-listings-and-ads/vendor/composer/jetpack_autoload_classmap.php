@@ -20926,9 +20926,25 @@ return array(
 		'version' => '9999999-dev',
 		'path'    => $baseDir . '/tests/Unit/Product/ProductMetaHandlerTest.php'
 	),
+	'Automattic\\WooCommerce\\GoogleListingsAndAds\\Tests\\Unit\\API\\Site\\Controllers\\MerchantCenter\\ContactInformationControllerTest' => array(
+		'version' => '9999999-dev',
+		'path'    => $baseDir . '/tests/Unit/API/Site/Controllers/MerchantCenter/ContactInformationControllerTest.php'
+	),
+	'Automattic\\WooCommerce\\GoogleListingsAndAds\\Tests\\Unit\\MerchantCenter\\ContactInformationTest' => array(
+		'version' => '9999999-dev',
+		'path'    => $baseDir . '/tests/Unit/MerchantCenter/ContactInformationTest.php'
+	),
 	'Automattic\\WooCommerce\\GoogleListingsAndAds\\Tests\\Unit\\Assets\\AdminScriptAssetTest' => array(
 		'version' => '9999999-dev',
 		'path'    => $baseDir . '/tests/Unit/Assets/AdminScriptAssetTest.php'
+	),
+	'Automattic\\WooCommerce\\GoogleListingsAndAds\\Tests\\Unit\\Utility\\AddressUtilityTest' => array(
+		'version' => '9999999-dev',
+		'path'    => $baseDir . '/tests/Unit/Utility/AddressUtilityTest.php'
+	),
+	'Automattic\\WooCommerce\\GoogleListingsAndAds\\Tests\\Tools\\HelperTrait\\MerchantTrait' => array(
+		'version' => '9999999-dev',
+		'path'    => $baseDir . '/tests/Tools/HelperTrait/MerchantTrait.php'
 	),
 	'Automattic\\WooCommerce\\GoogleListingsAndAds\\Tests\\Tools\\HelperTrait\\ProductTrait' => array(
 		'version' => '9999999-dev',
@@ -21446,6 +21462,10 @@ return array(
 		'version' => '9999999-dev',
 		'path'    => $baseDir . '/src/Product/Attributes/Gender.php'
 	),
+	'Automattic\\WooCommerce\\GoogleListingsAndAds\\Product\\FilteredProductList' => array(
+		'version' => '9999999-dev',
+		'path'    => $baseDir . '/src/Product/FilteredProductList.php'
+	),
 	'Automattic\\WooCommerce\\GoogleListingsAndAds\\Product\\ProductFactory' => array(
 		'version' => '9999999-dev',
 		'path'    => $baseDir . '/src/Product/ProductFactory.php'
@@ -21461,6 +21481,10 @@ return array(
 	'Automattic\\WooCommerce\\GoogleListingsAndAds\\Product\\ProductSyncer' => array(
 		'version' => '9999999-dev',
 		'path'    => $baseDir . '/src/Product/ProductSyncer.php'
+	),
+	'Automattic\\WooCommerce\\GoogleListingsAndAds\\Product\\ProductFilter' => array(
+		'version' => '9999999-dev',
+		'path'    => $baseDir . '/src/Product/ProductFilter.php'
 	),
 	'Automattic\\WooCommerce\\GoogleListingsAndAds\\GoogleHelper' => array(
 		'version' => '9999999-dev',
@@ -21497,6 +21521,10 @@ return array(
 	'Automattic\\WooCommerce\\GoogleListingsAndAds\\Notes\\SetupCampaignTwoWeeks' => array(
 		'version' => '9999999-dev',
 		'path'    => $baseDir . '/src/Notes/SetupCampaignTwoWeeks.php'
+	),
+	'Automattic\\WooCommerce\\GoogleListingsAndAds\\Notes\\ContactInformation' => array(
+		'version' => '9999999-dev',
+		'path'    => $baseDir . '/src/Notes/ContactInformation.php'
 	),
 	'Automattic\\WooCommerce\\GoogleListingsAndAds\\Menu\\Dashboard' => array(
 		'version' => '9999999-dev',
@@ -21830,6 +21858,10 @@ return array(
 		'version' => '9999999-dev',
 		'path'    => $baseDir . '/src/API/Site/Controllers/MerchantCenter/ShippingTimeBatchController.php'
 	),
+	'Automattic\\WooCommerce\\GoogleListingsAndAds\\API\\Site\\Controllers\\MerchantCenter\\ContactInformationController' => array(
+		'version' => '9999999-dev',
+		'path'    => $baseDir . '/src/API/Site/Controllers/MerchantCenter/ContactInformationController.php'
+	),
 	'Automattic\\WooCommerce\\GoogleListingsAndAds\\API\\Site\\Controllers\\MerchantCenter\\ProductStatisticsController' => array(
 		'version' => '9999999-dev',
 		'path'    => $baseDir . '/src/API/Site/Controllers/MerchantCenter/ProductStatisticsController.php'
@@ -21937,6 +21969,10 @@ return array(
 	'Automattic\\WooCommerce\\GoogleListingsAndAds\\Tracking\\Tracks' => array(
 		'version' => '9999999-dev',
 		'path'    => $baseDir . '/src/Tracking/Tracks.php'
+	),
+	'Automattic\\WooCommerce\\GoogleListingsAndAds\\MerchantCenter\\ContactInformation' => array(
+		'version' => '9999999-dev',
+		'path'    => $baseDir . '/src/MerchantCenter/ContactInformation.php'
 	),
 	'Automattic\\WooCommerce\\GoogleListingsAndAds\\MerchantCenter\\MerchantCenterService' => array(
 		'version' => '9999999-dev',
@@ -22190,6 +22226,10 @@ return array(
 		'version' => '9999999-dev',
 		'path'    => $baseDir . '/src/Exception/InvalidAsset.php'
 	),
+	'Automattic\\WooCommerce\\GoogleListingsAndAds\\Exception\\MerchantApiException' => array(
+		'version' => '9999999-dev',
+		'path'    => $baseDir . '/src/Exception/MerchantApiException.php'
+	),
 	'Automattic\\WooCommerce\\GoogleListingsAndAds\\Exception\\ExtensionRequirementException' => array(
 		'version' => '9999999-dev',
 		'path'    => $baseDir . '/src/Exception/ExtensionRequirementException.php'
@@ -22257,6 +22297,10 @@ return array(
 	'Automattic\\WooCommerce\\GoogleListingsAndAds\\PluginHelper' => array(
 		'version' => '9999999-dev',
 		'path'    => $baseDir . '/src/PluginHelper.php'
+	),
+	'Automattic\\WooCommerce\\GoogleListingsAndAds\\Utility\\AddressUtility' => array(
+		'version' => '9999999-dev',
+		'path'    => $baseDir . '/src/Utility/AddressUtility.php'
 	),
 	'Automattic\\Jetpack\\Autoloader\\AutoloadGenerator' => array(
 		'version' => '2.10.0.0',

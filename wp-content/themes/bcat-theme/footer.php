@@ -14,20 +14,22 @@
             <div class="site-footer__col-two-three-group">
                 <div class="site-footer__col-two">
                     <h3 class="headline headline--small">Contacteer onze secretaris Gisele Van Zeghbroeck</h3>
-                    <nav class="nav-list">
-                        <ul>
-                            <li><p>Wolvertemsesteenweg 149</p></li>
-                            <li><p>1785 Merchtem</p></li>
-                            <li><p>Mail: secretariaat@bcat.be</p></li>
-                        </ul>
-                    </nav>
+
+
+                    <p>Wolvertemsesteenweg 149
+                        <br>1785 Merchtem
+                        <br>Mail: secretariaat@bcat.be
+                    </p>
+
                 </div>
 
                 <div class="site-footer__col-three">
                     <h3 class="headline headline--small">Algemene Info</h3>
                     <nav class="nav-list">
                         <ul>
-                            <li><p>info@bcat.be</p></li>
+                            <li>
+                                <p>info@bcat.be</p>
+                            </li>
                         </ul>
                     </nav>
                 </div>

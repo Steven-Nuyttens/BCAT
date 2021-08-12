@@ -5,7 +5,7 @@
       <div class="page-banner__bg-image" style="background-image: url(<?php echo get_theme_file_uri('/images/basketball-banner.jpg') ; ?>);"></div>
       <div class="page-banner__content container t-center c-white">
         <h1 class="headline headline--large">Welcome BCAT Enthousiast!</h1>
-        <h2 class="headline headline--medium">We think you&rsquo;ll like it here.</h2>
+        <h2 class="headline headline--medium">This is your spot for everything about BCAT </h2>
         <h3 class="headline headline--small">Have a look around and learn about the Club</h3>
         
       </div>
@@ -43,7 +43,7 @@
     </div>
     <div class="full-width-split__two">
       <div class="full-width-split__inner">
-        <h2 class="headline headline--small-plus t-center">From Our Blogs</h2>
+        <h2 class="headline headline--small-plus t-center">Nieuwtjes</h2>
         <?php
           $homepagePosts = new WP_Query(array(
             'posts_per_page' => 2
@@ -67,7 +67,7 @@
         
         
         
-        <p class="t-center no-margin"><a href="<?php echo site_url('/blog'); ?>" class="btn btn--yellow">View All Blog Posts</a></p>
+        <p class="t-center no-margin"><a href="<?php echo site_url('/blog'); ?>" class="btn btn--yellow">Alle Nieuwtjes</a></p>
       </div>
     </div>
   </div>
@@ -75,29 +75,29 @@
   <div class="hero-slider">
     <div data-glide-el="track" class="glide__track">
     <div class="glide__slides">
-    <div class="hero-slider__slide" style="background-image: url(<?php echo get_theme_file_uri('/images/bus.jpg'); ?>);">
+    <div class="hero-slider__slide" style="background-image: url(<?php echo get_theme_file_uri('/images/Basketball-Sports.jpg'); ?>);">
     <div class="hero-slider__interior container">
       <div class="hero-slider__overlay">
-        <h2 class="headline headline--medium t-center">Free Transportation</h2>
-        <p class="t-center">All students have free unlimited bus fare.</p>
+        <h2 class="headline headline--medium t-center">BCAT</h2>
+        <p class="t-center">Impossible is nothing</p>
         <p class="t-center no-margin"><a href="#" class="btn btn--blue">Learn more</a></p>
       </div>
     </div>
   </div>
-  <div class="hero-slider__slide" style="background-image: url(<?php echo get_theme_file_uri('/images/apples.jpg'); ?>);">
+  <div class="hero-slider__slide" style="background-image: url(<?php echo get_theme_file_uri('/images/basketball-banner.jpg'); ?>);">
     <div class="hero-slider__interior container">
       <div class="hero-slider__overlay">
-        <h2 class="headline headline--medium t-center">An Apple a Day</h2>
-        <p class="t-center">Our dentistry program recommends eating apples.</p>
+        <h2 class="headline headline--medium t-center">Team spirit</h2>
+        <p class="t-center">It is in our DNA</p>
         <p class="t-center no-margin"><a href="#" class="btn btn--blue">Learn more</a></p>
       </div>
     </div>
   </div>
-  <div class="hero-slider__slide" style="background-image: url(<?php echo get_theme_file_uri('/images/bread.jpg'); ?>);">
+  <div class="hero-slider__slide" style="background-image: url(<?php echo get_theme_file_uri('/images/basketball-banner2.jpg'); ?>);">
     <div class="hero-slider__interior container">
       <div class="hero-slider__overlay">
-        <h2 class="headline headline--medium t-center">Free Food</h2>
-        <p class="t-center">Fictional University offers lunch plans for those in need.</p>
+        <h2 class="headline headline--medium t-center">Basketschool</h2>
+        <p class="t-center">Basketbal vanaf x jaar</p>
         <p class="t-center no-margin"><a href="#" class="btn btn--blue">Learn more</a></p>
       </div>
     </div>
