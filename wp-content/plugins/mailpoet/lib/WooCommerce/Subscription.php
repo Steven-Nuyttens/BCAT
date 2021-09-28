@@ -75,7 +75,7 @@ class Subscription {
     );
     echo $template;
     if ($template) {
-      $this->printSubscriptionPresenceCheckField();
+      echo $this->getSubscriptionPresenceCheckField();
     }
   }
 
@@ -85,6 +85,8 @@ class Subscription {
       [
         'type' => 'checkbox',
         'label' => $this->wp->escHtml($labelString),
+        'input_class' => ['woocommerce-form__input', 'woocommerce-form__input-checkbox', 'input-checkbox'],
+        'label_class' => ['woocommerce-form__label', 'woocommerce-form__label-for-checkbox', 'checkbox'],
         'custom_attributes' => ['data-automation-id' => 'woo-commerce-subscription-opt-in'],
         'return' => true,
       ],
@@ -92,14 +94,29 @@ class Subscription {
     );
   }
 
-  private function printSubscriptionPresenceCheckField() {
-    return $this->wcHelper->woocommerceFormField(
+  private function getSubscriptionPresenceCheckField() {
+    $field = $this->wcHelper->woocommerceFormField(
       self::CHECKOUT_OPTIN_PRESENCE_CHECK_INPUT_NAME,
       [
         'type' => 'hidden',
+        'return' => true,
       ],
       1
     );
+    if ($field) {
+      return $field;
+    }
+    // Workaround for older WooCommerce versions (below 4.6.0) that don't support hidden fields
+    // We can remove it after we drop support of older WooCommerce
+    $field = $this->wcHelper->woocommerceFormField(
+      self::CHECKOUT_OPTIN_PRESENCE_CHECK_INPUT_NAME,
+      [
+        'type' => 'text',
+        'return' => true,
+      ],
+      1
+    );
+    return str_replace('type="text', 'type="hidden"', $field);
   }
 
   private function isCurrentUserSubscribed() {

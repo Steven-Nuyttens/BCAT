@@ -20926,6 +20926,10 @@ return array(
 		'version' => '9999999-dev',
 		'path'    => $baseDir . '/tests/Unit/Product/ProductMetaHandlerTest.php'
 	),
+	'Automattic\\WooCommerce\\GoogleListingsAndAds\\Tests\\Unit\\DB\\Migration\\MigratorTest' => array(
+		'version' => '9999999-dev',
+		'path'    => $baseDir . '/tests/Unit/DB/Migration/MigratorTest.php'
+	),
 	'Automattic\\WooCommerce\\GoogleListingsAndAds\\Tests\\Unit\\API\\Site\\Controllers\\MerchantCenter\\ContactInformationControllerTest' => array(
 		'version' => '9999999-dev',
 		'path'    => $baseDir . '/tests/Unit/API/Site/Controllers/MerchantCenter/ContactInformationControllerTest.php'
@@ -21641,6 +21645,22 @@ return array(
 	'Automattic\\WooCommerce\\GoogleListingsAndAds\\DB\\Table' => array(
 		'version' => '9999999-dev',
 		'path'    => $baseDir . '/src/DB/Table.php'
+	),
+	'Automattic\\WooCommerce\\GoogleListingsAndAds\\DB\\Migration\\Migrator' => array(
+		'version' => '9999999-dev',
+		'path'    => $baseDir . '/src/DB/Migration/Migrator.php'
+	),
+	'Automattic\\WooCommerce\\GoogleListingsAndAds\\DB\\Migration\\MigrationVersion141' => array(
+		'version' => '9999999-dev',
+		'path'    => $baseDir . '/src/DB/Migration/MigrationVersion141.php'
+	),
+	'Automattic\\WooCommerce\\GoogleListingsAndAds\\DB\\Migration\\MigrationInterface' => array(
+		'version' => '9999999-dev',
+		'path'    => $baseDir . '/src/DB/Migration/MigrationInterface.php'
+	),
+	'Automattic\\WooCommerce\\GoogleListingsAndAds\\DB\\Migration\\AbstractMigration' => array(
+		'version' => '9999999-dev',
+		'path'    => $baseDir . '/src/DB/Migration/AbstractMigration.php'
 	),
 	'Automattic\\WooCommerce\\GoogleListingsAndAds\\API\\MicroTrait' => array(
 		'version' => '9999999-dev',

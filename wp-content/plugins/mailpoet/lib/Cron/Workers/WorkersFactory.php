@@ -20,7 +20,9 @@ class WorkersFactory {
   /** @var ContainerWrapper */
   private $container;
 
-  public function __construct(ContainerWrapper $container) {
+  public function __construct(
+    ContainerWrapper $container
+  ) {
     $this->container = $container;
   }
 
@@ -97,6 +99,11 @@ class WorkersFactory {
   /** @return SubscribersEngagementScore */
   public function createSubscribersEngagementScoreWorker() {
     return $this->container->get(SubscribersEngagementScore::class);
+  }
+
+  /** @return SubscribersLastEngagement */
+  public function createSubscribersLastEngagementWorker() {
+    return $this->container->get(SubscribersLastEngagement::class);
   }
 
   /** @return AuthorizedSendingEmailsCheck */

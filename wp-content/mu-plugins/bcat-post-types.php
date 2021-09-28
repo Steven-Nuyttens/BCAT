@@ -23,7 +23,7 @@ function university_post_types() {
   // Team post type
 
   register_post_type('team', array(
-    'supports' => array('title', 'editor'),
+    'supports' => array('title', 'editor', 'thumbnail'),
     'rewrite' => array('slug' => 'teams'),
     'has_archive' => true,
     'public' => true,

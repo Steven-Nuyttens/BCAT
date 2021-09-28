@@ -72,7 +72,101 @@
     </div>
   </div>
 
-  <div class="hero-slider">
+  <div class="full-width-split group">
+    <div class="full-width-split__two">
+      <div class="full-width-split__inner">
+        <h2 class="headline headline--small-plus t-center">Heren A</h2>
+        <table>
+            <td>
+              <tr>
+                <th>Game Day</th>
+                <th>Home</th>
+                <th>Away</th>
+              </tr>
+    <?php
+      $vblApi = "http://vblcb.wisseq.eu/VBLCB_WebService/data/OrgMatchesByGuid?issguid=BVBL1232";
+      $herenA = "http://vblcb.wisseq.eu/VBLCB_WebService/data/TeamMatchesByGuid?teamguid=BVBL1232HSE++1";
+
+      $json = file_get_contents($herenA);
+        $info = json_decode($json);
+        
+        for( $i = 0; $i < count($info); $i++){
+          $gameDay = $info[$i]->datumString;
+          $homeTeam = $info[$i]->tTNaam;
+          $awayTeam = $info[$i]->tUNaam;
+          ?>
+          
+              <tr>
+                
+                <td><?php echo $gameDay; ?></td>
+                <td><?php echo $homeTeam; ?></td>
+                <td><?php echo $awayTeam; ?></td>
+              </tr>
+
+            </td>
+          </table>
+          <?php
+
+        };
+        
+        //echo $info{0}->datumString;
+        echo strtotime("10 September 2000"), "\n";
+        
+    ?>
+  </div>
+    </div>
+
+  <div class="full-width-split__one">
+      <div class="full-width-split__inner">
+      <h2 class="headline headline--small-plus t-center">Dames A</h2>
+      <table>
+            <td>
+              <tr>
+                <th>Game Day</th>
+                <th>Home</th>
+                <th>Away</th>
+              </tr>
+    <?php
+      $vblApi = "http://vblcb.wisseq.eu/VBLCB_WebService/data/OrgMatchesByGuid?issguid=BVBL1232";
+      $damesA = "http://vblcb.wisseq.eu/VBLCB_WebService/data/TeamMatchesByGuid?teamguid=BVBL1232DSE++1";
+
+      $json = file_get_contents($damesA);
+        $info = json_decode($json);
+        
+        for( $i = 0; $i < count($info); $i++){
+          $gameDay = $info[$i]->datumString;
+          $homeTeam = $info[$i]->tTNaam;
+          $awayTeam = $info[$i]->tUNaam;
+          ?>
+          
+              <tr>
+                
+                <td><?php echo $gameDay; ?></td>
+                <td><?php echo $homeTeam; ?></td>
+                <td><?php echo $awayTeam; ?></td>
+              </tr>
+
+            </td>
+          </table>
+          <?php
+
+        };
+        
+        //echo $info{0}->datumString;
+        echo strtotime("10 September 2000"), "\n";
+        
+    ?>
+        
+
+        
+        
+        
+      </div>
+    </div>
+  </div>
+  
+
+  <!--<div class="hero-slider">
     <div data-glide-el="track" class="glide__track">
     <div class="glide__slides">
     <div class="hero-slider__slide" style="background-image: url(<?php echo get_theme_file_uri('/images/Basketball-Sports.jpg'); ?>);">
@@ -107,6 +201,7 @@
       </div>
     </div>
   </div>
+          -->
 <?php
   get_footer();
 

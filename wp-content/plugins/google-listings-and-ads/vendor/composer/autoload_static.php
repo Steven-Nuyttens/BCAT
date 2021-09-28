@@ -4,7 +4,7 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInit84675a535417c6171b1654eca5578fab
+class ComposerStaticInit45a964d8c3674266f4d2ab718d8ef7e9
 {
     public static $files = array (
         '7b11c4dc42b3b3023073cb14e519683c' => __DIR__ . '/..' . '/ralouphie/getallheaders/src/getallheaders.php',
@@ -375,6 +375,10 @@ class ComposerStaticInit84675a535417c6171b1654eca5578fab
         'Automattic\\WooCommerce\\GoogleListingsAndAds\\ConnectionTest' => __DIR__ . '/../..' . '/src/ConnectionTest.php',
         'Automattic\\WooCommerce\\GoogleListingsAndAds\\Container' => __DIR__ . '/../..' . '/src/Container.php',
         'Automattic\\WooCommerce\\GoogleListingsAndAds\\DB\\Installer' => __DIR__ . '/../..' . '/src/DB/Installer.php',
+        'Automattic\\WooCommerce\\GoogleListingsAndAds\\DB\\Migration\\AbstractMigration' => __DIR__ . '/../..' . '/src/DB/Migration/AbstractMigration.php',
+        'Automattic\\WooCommerce\\GoogleListingsAndAds\\DB\\Migration\\MigrationInterface' => __DIR__ . '/../..' . '/src/DB/Migration/MigrationInterface.php',
+        'Automattic\\WooCommerce\\GoogleListingsAndAds\\DB\\Migration\\MigrationVersion141' => __DIR__ . '/../..' . '/src/DB/Migration/MigrationVersion141.php',
+        'Automattic\\WooCommerce\\GoogleListingsAndAds\\DB\\Migration\\Migrator' => __DIR__ . '/../..' . '/src/DB/Migration/Migrator.php',
         'Automattic\\WooCommerce\\GoogleListingsAndAds\\DB\\ProductFeedQueryHelper' => __DIR__ . '/../..' . '/src/DB/ProductFeedQueryHelper.php',
         'Automattic\\WooCommerce\\GoogleListingsAndAds\\DB\\ProductMetaQueryHelper' => __DIR__ . '/../..' . '/src/DB/ProductMetaQueryHelper.php',
         'Automattic\\WooCommerce\\GoogleListingsAndAds\\DB\\Query' => __DIR__ . '/../..' . '/src/DB/Query.php',
@@ -572,6 +576,7 @@ class ComposerStaticInit84675a535417c6171b1654eca5578fab
         'Automattic\\WooCommerce\\GoogleListingsAndAds\\Tests\\Tools\\HelperTrait\\SettingsTrait' => __DIR__ . '/../..' . '/tests/Tools/HelperTrait/SettingsTrait.php',
         'Automattic\\WooCommerce\\GoogleListingsAndAds\\Tests\\Unit\\API\\Site\\Controllers\\MerchantCenter\\ContactInformationControllerTest' => __DIR__ . '/../..' . '/tests/Unit/API/Site/Controllers/MerchantCenter/ContactInformationControllerTest.php',
         'Automattic\\WooCommerce\\GoogleListingsAndAds\\Tests\\Unit\\Assets\\AdminScriptAssetTest' => __DIR__ . '/../..' . '/tests/Unit/Assets/AdminScriptAssetTest.php',
+        'Automattic\\WooCommerce\\GoogleListingsAndAds\\Tests\\Unit\\DB\\Migration\\MigratorTest' => __DIR__ . '/../..' . '/tests/Unit/DB/Migration/MigratorTest.php',
         'Automattic\\WooCommerce\\GoogleListingsAndAds\\Tests\\Unit\\MerchantCenter\\ContactInformationTest' => __DIR__ . '/../..' . '/tests/Unit/MerchantCenter/ContactInformationTest.php',
         'Automattic\\WooCommerce\\GoogleListingsAndAds\\Tests\\Unit\\Product\\Attributes\\AbstractAttributeTest' => __DIR__ . '/../..' . '/tests/Unit/Product/Attributes/AbstractAttributeTest.php',
         'Automattic\\WooCommerce\\GoogleListingsAndAds\\Tests\\Unit\\Product\\Attributes\\AttributeManagerTest' => __DIR__ . '/../..' . '/tests/Unit/Product/Attributes/AttributeManagerTest.php',
@@ -5873,9 +5878,9 @@ class ComposerStaticInit84675a535417c6171b1654eca5578fab
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->prefixLengthsPsr4 = ComposerStaticInit84675a535417c6171b1654eca5578fab::$prefixLengthsPsr4;
-            $loader->prefixDirsPsr4 = ComposerStaticInit84675a535417c6171b1654eca5578fab::$prefixDirsPsr4;
-            $loader->classMap = ComposerStaticInit84675a535417c6171b1654eca5578fab::$classMap;
+            $loader->prefixLengthsPsr4 = ComposerStaticInit45a964d8c3674266f4d2ab718d8ef7e9::$prefixLengthsPsr4;
+            $loader->prefixDirsPsr4 = ComposerStaticInit45a964d8c3674266f4d2ab718d8ef7e9::$prefixDirsPsr4;
+            $loader->classMap = ComposerStaticInit45a964d8c3674266f4d2ab718d8ef7e9::$classMap;
 
         }, null, ClassLoader::class);
     }

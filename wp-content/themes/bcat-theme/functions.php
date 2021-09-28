@@ -15,6 +15,7 @@ function bcat_features() {
   add_theme_support('post-thumbnails');
   add_image_size('coachLandscape', 400, 260, true);
   add_image_size('coachPortrait', 480, 650,true);
+  add_image_size('teamLandscape', 400, 260, array('center', 'center'));
 }
 
 add_action('after_setup_theme', 'bcat_features');

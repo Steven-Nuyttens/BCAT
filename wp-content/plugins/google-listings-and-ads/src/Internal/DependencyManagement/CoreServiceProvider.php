@@ -19,6 +19,7 @@ use Automattic\WooCommerce\GoogleListingsAndAds\Assets\AssetsHandler;
 use Automattic\WooCommerce\GoogleListingsAndAds\Assets\AssetsHandlerInterface;
 use Automattic\WooCommerce\GoogleListingsAndAds\ConnectionTest;
 use Automattic\WooCommerce\GoogleListingsAndAds\DB\Installer as DBInstaller;
+use Automattic\WooCommerce\GoogleListingsAndAds\DB\Migration\Migrator;
 use Automattic\WooCommerce\GoogleListingsAndAds\DB\TableManager;
 use Automattic\WooCommerce\GoogleListingsAndAds\Event\ClearProductStatsCache;
 use Automattic\WooCommerce\GoogleListingsAndAds\Google\GlobalSiteTag;
@@ -227,8 +228,8 @@ class CoreServiceProvider extends AbstractServiceProvider {
 
 		// Product attributes
 		$this->conditionally_share_with_tags( AttributeManager::class );
-		$this->conditionally_share_with_tags( AttributesTab::class, Admin::class, AttributeManager::class );
-		$this->conditionally_share_with_tags( VariationsAttributes::class, Admin::class, AttributeManager::class );
+		$this->conditionally_share_with_tags( AttributesTab::class, Admin::class, AttributeManager::class, MerchantCenterService::class );
+		$this->conditionally_share_with_tags( VariationsAttributes::class, Admin::class, AttributeManager::class, MerchantCenterService::class );
 
 		$this->share_with_tags( AdsAccountState::class );
 		$this->share_with_tags( MerchantAccountState::class );
@@ -262,7 +263,7 @@ class CoreServiceProvider extends AbstractServiceProvider {
 			 ->invokeMethod( 'set_tracks', [ TracksInterface::class ] );
 
 		// Share admin meta boxes
-		$this->conditionally_share_with_tags( ChannelVisibilityMetaBox::class, Admin::class, ProductMetaHandler::class, ProductHelper::class );
+		$this->conditionally_share_with_tags( ChannelVisibilityMetaBox::class, Admin::class, ProductMetaHandler::class, ProductHelper::class, MerchantCenterService::class );
 		$this->conditionally_share_with_tags( MetaBoxInitializer::class, Admin::class, MetaBoxInterface::class );
 
 		$this->share_with_tags( PHPViewFactory::class );
@@ -275,7 +276,7 @@ class CoreServiceProvider extends AbstractServiceProvider {
 		$this->conditionally_share_with_tags( ClearProductStatsCache::class, MerchantStatuses::class );
 
 		$this->share_with_tags( TableManager::class, 'db_table' );
-		$this->share_with_tags( DBInstaller::class, TableManager::class );
+		$this->share_with_tags( DBInstaller::class, TableManager::class, Migrator::class );
 
 		$this->share_with_tags( DeprecatedFilters::class );
 	}

@@ -19,7 +19,16 @@
         <p><a class="metabox__blog-home-link" href="<?php echo get_post_type_archive_link('team'); ?>"><i class="fa fa-users" aria-hidden="true"></i> All Teams</a> <span class="metabox__main"><?php the_title(); ?></span></p>
       </div>
 
-      <div class="generic-content"><?php the_content(); ?></div>
+      <div class="generic-content">
+      <div class="row group">
+        <div class="one-third">
+          <?php the_post_thumbnail('coachPortrait'); ?>
+        </div>
+        <div class="two-thirds">
+          <?php the_content(); ?>
+        </div>
+      </div>
+      </div>
 
         <?php
             $relatedCoaches = get_field('related_coaches');

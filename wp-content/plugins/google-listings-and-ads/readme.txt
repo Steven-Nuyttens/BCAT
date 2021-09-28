@@ -4,7 +4,7 @@ Tags: woocommerce, google, listings, ads
 Requires at least: 5.5
 Tested up to: 5.8
 Requires PHP: 7.3
-Stable tag: 1.4.0
+Stable tag: 1.4.3
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -115,33 +115,25 @@ Yes, you can run both at the same time, and we recommend it! In the US, advertis
 
 == Changelog ==
 
-= 1.4.0 - 2021-08-09 =
-* Add - Filter to allow applying shortcodes to product description.
-* Add - New contact information feature.
-* Fix - Add `woocommerce_gla_product_attribute_values` filter to allow overriding all product attributes.
-* Fix - Invalid Google IDs meta value causing fatal failure.
-* Fix - Load deprecated functions from Guzzle which are required for the GAX library.
-* Fix - Process all batches when updating products.
-* Tweak - Removed SVGs from JS bundle.
-* Tweak - Use the WordPress date and time formats on the Product Feed page.
+= 1.4.3 - 2021-09-08 =
+* Fix - PHP notice when creating a product variation.
+* Tweak - Hide channel visibility box and attributes tab if the setup is not completed.
 
-= 1.3.0 - 2021-07-27 =
-* Fix - Bump WordPress tested version to 5.8.
-* Fix - Code formatting with Prettier.
-* Fix - Disable the "Complete setup" button if the free shipping price is not yet entered when setting up Merchant Center for the first time.
-* Fix - Fix: add eslint-plugin-import to help catch JavaScript import errors.
-* Fix - Import `Button` from `@wordpress/components` in Switch URL flow.
-* Fix - Remove unused code.
-* Fix - Shows a Jetpack connected success text instead of blank when viewing the onboarding setup and the settings pages as a non jetpack owner account.
-* Fix - Skip orphaned variations instead of throwing errors when syncing products.
-* Tweak - Add filters for adjusting description.
-* Tweak - Allow safe HTML tags for product descriptions.
-* Tweak - Replaced `<AppTextButton>` with WP's `<Button isLink>`.
-* Tweak - Use @wordpress/prettier-config package.
-* Update - Optionally clean up plugin data on uninstall.
-* Update - Stop syncing invisible products and variations.
+= 1.4.2 - 2021-08-24 =
+* Fix - Fix a potential fatal error when WooCommerce isn't active while activating Google Listings and Ads.
+* Fix - Fix margin/padding styles for the AppButton when having spinner/icon/text.
+* Fix - Make audience country searchable in Setup Ads.
+* Fix - Remove file autoloads for namespaced packages.
+* Tweak - Remove all "STEP [NUMBER]" texts from step headers on the onboarding setup, paid campaign setup, and free listings edit pages.
+* Tweak - WC 5.5 compatibility.
 
-= 1.2.1 - 2021-07-15 =
-* Fix - Made Forms submit and change behavior work with WooCommerce >= 5.5 (WooCommerce Admin >= 2.4.0).
+= 1.4.1 - 2021-08-16 =
+* Fix - Allow connection test page for other admin users.
+* Fix - Allow spaces in paths when prefixing vendor namespaces.
+* Fix - Database error: "Specified key was too long". i.e. removed the `product_issue` index from the `merchant_issues` table.
+* Fix - Fatal error when activating plugin with no Merchant Center account connected.
+* Fix - Some pre-sync errors being skipped in the product issues table.
+* Fix - display the correct currency actually used for the paid campaign budget.
+* Tweak - Limit the product descriptions to 5000 characters when syncing.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/google-listings-and-ads/trunk/changelog.txt).
