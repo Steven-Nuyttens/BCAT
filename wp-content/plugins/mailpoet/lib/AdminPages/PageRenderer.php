@@ -67,6 +67,7 @@ class PageRenderer {
       'feature_flags' => $this->featuresController->getAllFlags(),
       'referral_id' => $this->settings->get(ReferralDetector::REFERRAL_SETTING_NAME),
       'mailpoet_api_key_state' => $this->settings->get('mta.mailpoet_api_key_state'),
+      'mta_method' => $this->settings->get('mta.method'),
       'premium_key_state' => $this->settings->get('premium.premium_key_state'),
       'last_announcement_seen' => $lastAnnouncementSeen,
       'feature_announcement_has_news' => (empty($lastAnnouncementSeen) || $lastAnnouncementSeen < $lastAnnouncementDate),
@@ -82,6 +83,9 @@ class PageRenderer {
       if (is_admin() && $this->subscribersCountCacheRecalculation->shouldBeScheduled()) {
         $this->subscribersCountCacheRecalculation->schedule();
       }
+
+      // We are in control of the template and the data can be considered safe at this point
+      // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped, WordPressDotOrg.sniffs.OutputEscaping.UnescapedOutputParameter
       echo $this->renderer->render($template, $data + $defaults);
     } catch (\Exception $e) {
       $notice = new WPNotice(WPNotice::TYPE_ERROR, $e->getMessage());

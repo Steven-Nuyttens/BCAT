@@ -7,11 +7,17 @@ if (!defined('ABSPATH')) exit;
 
 use MailPoet\API\JSON\API;
 use MailPoet\AutomaticEmails\AutomaticEmails;
+use MailPoet\Automation\Engine\Engine;
+use MailPoet\Automation\Engine\Hooks as AutomationHooks;
+use MailPoet\Automation\Integrations\MailPoet\MailPoetIntegration;
 use MailPoet\Cron\CronTrigger;
+use MailPoet\Features\FeaturesController;
 use MailPoet\InvalidStateException;
 use MailPoet\PostEditorBlocks\PostEditorBlock;
+use MailPoet\PostEditorBlocks\WooCommerceBlocksIntegration;
 use MailPoet\Router;
 use MailPoet\Settings\SettingsController;
+use MailPoet\Statistics\Track\SubscriberActivityTracker;
 use MailPoet\Util\ConflictResolver;
 use MailPoet\Util\Helpers;
 use MailPoet\Util\Notices\PermanentNotices;
@@ -21,8 +27,6 @@ use MailPoet\WP\Functions as WPFunctions;
 use MailPoet\WP\Notice as WPNotice;
 
 class Initializer {
-  public $automaticEmails;
-
   /** @var AccessControl */
   private $accessControl;
 
@@ -74,11 +78,32 @@ class Initializer {
   /** @var \MailPoet\PostEditorBlocks\PostEditorBlock */
   private $postEditorBlock;
 
+  /** @var \MailPoet\PostEditorBlocks\WooCommerceBlocksIntegration */
+  private $woocommerceBlocksIntegration;
+
   /** @var Localizer */
   private $localizer;
 
+  /** @var AutomaticEmails */
+  private $automaticEmails;
+
+  /** @var WPFunctions */
+  private $wpFunctions;
+
   /** @var AssetsLoader */
   private $assetsLoader;
+
+  /** @var SubscriberActivityTracker */
+  private $subscriberActivityTracker;
+
+  /** @var Engine */
+  private $automationEngine;
+
+  /** @var MailPoetIntegration */
+  private $automationMailPoetIntegration;
+
+  /** @var FeaturesController */
+  private $featuresController;
 
   const INITIALIZED = 'MAILPOET_INITIALIZED';
 
@@ -98,9 +123,16 @@ class Initializer {
     DatabaseInitializer $databaseInitializer,
     WCTransactionalEmails $wcTransactionalEmails,
     PostEditorBlock $postEditorBlock,
+    WooCommerceBlocksIntegration $woocommerceBlocksIntegration,
     WooCommerceHelper $wcHelper,
     Localizer $localizer,
-    AssetsLoader $assetsLoader
+    AutomaticEmails $automaticEmails,
+    SubscriberActivityTracker $subscriberActivityTracker,
+    WPFunctions $wpFunctions,
+    AssetsLoader $assetsLoader,
+    Engine $automationEngine,
+    MailPoetIntegration $automationMailPoetIntegration,
+    FeaturesController $featuresController
   ) {
     $this->rendererFactory = $rendererFactory;
     $this->accessControl = $accessControl;
@@ -118,19 +150,26 @@ class Initializer {
     $this->wcTransactionalEmails = $wcTransactionalEmails;
     $this->wcHelper = $wcHelper;
     $this->postEditorBlock = $postEditorBlock;
+    $this->woocommerceBlocksIntegration = $woocommerceBlocksIntegration;
     $this->localizer = $localizer;
+    $this->automaticEmails = $automaticEmails;
+    $this->subscriberActivityTracker = $subscriberActivityTracker;
+    $this->wpFunctions = $wpFunctions;
     $this->assetsLoader = $assetsLoader;
+    $this->automationEngine = $automationEngine;
+    $this->automationMailPoetIntegration = $automationMailPoetIntegration;
+    $this->featuresController = $featuresController;
   }
 
   public function init() {
-    // load translations
+    // load translations and setup translations update/download
     $this->setupLocalizer();
 
     try {
       $this->databaseInitializer->initializeConnection();
     } catch (\Exception $e) {
       return WPNotice::displayError(Helpers::replaceLinkTags(
-        WPFunctions::get()->__('Unable to connect to the database (the database is unable to open a file or folder), the connection is likely not configured correctly. Please read our [link] Knowledge Base article [/link] for steps how to resolve it.', 'mailpoet'),
+        __('Unable to connect to the database (the database is unable to open a file or folder), the connection is likely not configured correctly. Please read our [link] Knowledge Base article [/link] for steps how to resolve it.', 'mailpoet'),
         'https://kb.mailpoet.com/article/200-solving-database-connection-issues',
         [
           'target' => '_blank',
@@ -140,7 +179,7 @@ class Initializer {
     }
 
     // activation function
-    WPFunctions::get()->registerActivationHook(
+    $this->wpFunctions->registerActivationHook(
       Env::$file,
       [
         $this,
@@ -148,40 +187,47 @@ class Initializer {
       ]
     );
 
-    WPFunctions::get()->addAction('activated_plugin', [
+    $this->wpFunctions->addAction('activated_plugin', [
       new PluginActivatedHook(new DeferredAdminNotices),
       'action',
     ], 10, 2);
 
-    WPFunctions::get()->addAction('init', [
+    $this->wpFunctions->addAction('init', [
       $this,
       'preInitialize',
     ], 0);
 
-    WPFunctions::get()->addAction('init', [
+    $this->wpFunctions->addAction('init', [
       $this,
       'initialize',
     ]);
 
-    WPFunctions::get()->addAction('admin_init', [
+    $this->wpFunctions->addAction('admin_init', [
       $this,
       'setupPrivacyPolicy',
     ]);
 
-    WPFunctions::get()->addAction('wp_loaded', [
+    $this->wpFunctions->addAction('wp_loaded', [
       $this,
       'postInitialize',
     ]);
 
-    WPFunctions::get()->addAction('admin_init', [
+    $this->wpFunctions->addAction('admin_init', [
       new DeferredAdminNotices,
       'printAndClean',
     ]);
 
-    WPFunctions::get()->addFilter('wpmu_drop_tables', [
+    $this->wpFunctions->addFilter('wpmu_drop_tables', [
       $this,
       'multisiteDropTables',
     ]);
+
+    if ($this->featuresController->isSupported(FeaturesController::AUTOMATION)) {
+      WPFunctions::get()->addAction(AutomationHooks::INITIALIZE, [
+        $this->automationMailPoetIntegration,
+        'register',
+      ]);
+    }
 
     $this->hooks->initEarlyHooks();
   }
@@ -209,7 +255,7 @@ class Initializer {
   }
 
   public function setupWidget() {
-    WPFunctions::get()->registerWidget('\MailPoet\Form\Widget');
+    $this->wpFunctions->registerWidget('\MailPoet\Form\Widget');
   }
 
   public function initialize() {
@@ -233,9 +279,15 @@ class Initializer {
 
       $this->setupPermanentNotices();
       $this->setupAutomaticEmails();
+      $this->setupWoocommerceBlocksIntegration();
+      $this->subscriberActivityTracker->trackActivity();
       $this->postEditorBlock->init();
 
-      WPFunctions::get()->doAction('mailpoet_initialized', MAILPOET_VERSION);
+      if ($this->featuresController->isSupported(FeaturesController::AUTOMATION)) {
+        $this->automationEngine->initialize();
+      }
+
+      $this->wpFunctions->doAction('mailpoet_initialized', MAILPOET_VERSION);
     } catch (InvalidStateException $e) {
       return $this->handleRunningMigration($e);
     } catch (\Exception $e) {
@@ -253,7 +305,7 @@ class Initializer {
     }
 
     // if current db version and plugin version differ
-    if (version_compare($currentDbVersion, Env::$version) !== 0) {
+    if (version_compare((string)$currentDbVersion, Env::$version) !== 0) {
       $this->activator->activate();
     }
   }
@@ -266,21 +318,23 @@ class Initializer {
   }
 
   public function setupUpdater() {
-    $slug = Installer::PREMIUM_PLUGIN_SLUG;
-    $pluginFile = Installer::getPluginFile($slug);
-    if (empty($pluginFile) || !defined('MAILPOET_PREMIUM_VERSION')) {
+    $premiumSlug = Installer::PREMIUM_PLUGIN_SLUG;
+    $premiumPluginFile = Installer::getPluginFile($premiumSlug);
+    $premiumVersion = defined('MAILPOET_PREMIUM_VERSION') ? MAILPOET_PREMIUM_VERSION : null;
+
+    if (empty($premiumPluginFile) || !$premiumVersion) {
       return false;
     }
     $updater = new Updater(
-      $pluginFile,
-      $slug,
+      $premiumPluginFile,
+      $premiumSlug,
       MAILPOET_PREMIUM_VERSION
     );
     $updater->init();
   }
 
   public function setupLocalizer() {
-    $this->localizer->init();
+    $this->localizer->init($this->wpFunctions);
   }
 
   public function setupCapabilities() {
@@ -293,7 +347,7 @@ class Initializer {
   }
 
   public function setupImages() {
-    WPFunctions::get()->addImageSize('mailpoet_newsletter_max', Env::NEWSLETTER_CONTENT_WIDTH);
+    $this->wpFunctions->addImageSize('mailpoet_newsletter_max', Env::NEWSLETTER_CONTENT_WIDTH);
   }
 
   public function setupCronTrigger() {
@@ -320,9 +374,9 @@ class Initializer {
   }
 
   public function setupUserLocale() {
-    if (get_user_locale() === WPFunctions::get()->getLocale()) return;
-    WPFunctions::get()->unloadTextdomain(Env::$pluginName);
-    $this->localizer->init();
+    if (get_user_locale() === $this->wpFunctions->getLocale()) return;
+    $this->wpFunctions->unloadTextdomain(Env::$pluginName);
+    $this->localizer->init($this->wpFunctions);
   }
 
   public function setupPages() {
@@ -365,15 +419,19 @@ class Initializer {
   }
 
   public function setupAutomaticEmails() {
-    $automaticEmails = new AutomaticEmails();
-    $automaticEmails->init();
-    $automaticEmails->getAutomaticEmails();
+    $this->automaticEmails->init();
+    $this->automaticEmails->getAutomaticEmails();
   }
 
   public function multisiteDropTables($tables) {
     global $wpdb;
     $tablePrefix = $wpdb->prefix . Env::$pluginPrefix;
-    $mailpoetTables = $wpdb->get_col("SHOW TABLES LIKE '$tablePrefix%'");
+    $mailpoetTables = $wpdb->get_col(
+      $wpdb->prepare(
+        "SHOW TABLES LIKE %s",
+        $wpdb->esc_like($tablePrefix) . '%'
+      )
+    );
     return array_merge($tables, $mailpoetTables);
   }
 
@@ -383,6 +441,14 @@ class Initializer {
     if ($wcEnabled && $optInEnabled) {
       $this->wcTransactionalEmails->overrideStylesForWooEmails();
       $this->wcTransactionalEmails->useTemplateForWoocommerceEmails();
+    }
+  }
+
+  private function setupWoocommerceBlocksIntegration() {
+    $wcEnabled = $this->wcHelper->isWooCommerceActive();
+    $wcBlocksEnabled = $this->wcHelper->isWooCommerceBlocksActive('6.3.0-dev');
+    if ($wcEnabled && $wcBlocksEnabled) {
+      $this->woocommerceBlocksIntegration->init();
     }
   }
 }

@@ -29,7 +29,7 @@ class BlockRendererHelper {
     $this->wp = $wp;
   }
 
-  public function getInputValidation(array $block, array $extraRules = []): string {
+  public function getInputValidation(array $block, array $extraRules = [], ?int $formId = null): string {
     $rules = [];
     $blockId = $this->wp->escAttr($block['id']);
 
@@ -42,7 +42,7 @@ class BlockRendererHelper {
 
     if (($blockId === 'first_name') || ($blockId === 'last_name')) {
       $errorMessages = [
-        __('Please specify a valid name', 'mailpoet'),
+        __('Please specify a valid name.', 'mailpoet'),
         __('Addresses in names are not permitted, please add your name instead.', 'mailpoet'),
       ];
       $rules['names'] = '[' . implode(',', array_map(function (string $errorMessage): string {
@@ -54,8 +54,8 @@ class BlockRendererHelper {
       $rules['required'] = true;
       $rules['mincheck'] = 1;
       $rules['group'] = $blockId;
-      $rules['errors-container'] = '.mailpoet_error_' . $blockId;
-      $rules['required-message'] = __('Please select a list', 'mailpoet');
+      $rules['errors-container'] = '.mailpoet_error_' . $blockId . ($formId ? '_' . $formId : '');
+      $rules['required-message'] = __('Please select a list.', 'mailpoet');
     }
 
     if (!empty($block['params']['required'])) {
@@ -66,7 +66,7 @@ class BlockRendererHelper {
     if (!empty($block['params']['validate'])) {
       if ($block['params']['validate'] === 'phone') {
         $rules['pattern'] = "^[\d\+\-\.\(\)\/\s]*$";
-        $rules['error-message'] = __('Please specify a valid phone number', 'mailpoet');
+        $rules['error-message'] = __('Please specify a valid phone number.', 'mailpoet');
       } else {
         $rules['type'] = $this->wp->escAttr($block['params']['validate']);
       }
@@ -74,13 +74,13 @@ class BlockRendererHelper {
 
     if (in_array($block['type'], ['radio', 'checkbox'])) {
       $rules['group'] = 'custom_field_' . $blockId;
-      $rules['errors-container'] = '.mailpoet_error_' . $blockId;
-      $rules['required-message'] = __('Please select at least one option', 'mailpoet');
+      $rules['errors-container'] = '.mailpoet_error_' . $blockId . ($formId ? '_' . $formId : '');
+      $rules['required-message'] = __('Please select at least one option.', 'mailpoet');
     }
 
     if ($block['type'] === 'date') {
       $rules['group'] = 'custom_field_' . $blockId;
-      $rules['errors-container'] = '.mailpoet_error_' . $blockId;
+      $rules['errors-container'] = '.mailpoet_error_' . $blockId . ($formId ? '_' . $formId : '');
     }
 
     $validation = [];
@@ -122,8 +122,10 @@ class BlockRendererHelper {
     if (in_array($block['id'], ['email', 'last_name', 'first_name'], true)) {
       $automationId = 'data-automation-id="form_' . $block['id'] . '_label" ';
     }
-    if (isset($block['params']['label'])
-      && strlen(trim($block['params']['label'])) > 0) {
+    if (
+      isset($block['params']['label'])
+      && strlen(trim($block['params']['label'])) > 0
+    ) {
       $html .= '<label '
         . 'class="mailpoet_' . $block['type'] . '_label" '
         . $this->renderFontStyle($formSettings, $block['styles'] ?? [])
@@ -144,7 +146,7 @@ class BlockRendererHelper {
     $rules = [];
     if (isset($formSettings['fontSize'])) {
       $rules[] = 'font-size: ' . trim($formSettings['fontSize']) . 'px;';
-      $rules[] = 'line-height: ' . trim($formSettings['fontSize']) * 1.2 . 'px";';
+      $rules[] = 'line-height: ' . (float)trim($formSettings['fontSize']) * 1.2 . 'px";';
     }
     if (isset($styles['bold'])) {
       $rules[] = 'font-weight: bold;';
@@ -192,6 +194,12 @@ class BlockRendererHelper {
     return (isset($block['params']['value'])
             && strlen(trim($block['params']['value'])) > 0)
             ? $this->wp->escAttr(trim($block['params']['value'])) : '';
+  }
+
+  public function getFieldIsRequired($block = []): bool {
+    return (isset($block['params']['required'])
+            && strlen(trim($block['params']['required'])) > 0)
+            ? !empty($block['params']['required']) : false;
   }
 
   public function getInputModifiers(array $block = []): string {

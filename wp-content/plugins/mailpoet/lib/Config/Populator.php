@@ -9,12 +9,15 @@ use MailPoet\Cron\CronTrigger;
 use MailPoet\Cron\Workers\AuthorizedSendingEmailsCheck;
 use MailPoet\Cron\Workers\Beamer;
 use MailPoet\Cron\Workers\InactiveSubscribers;
+use MailPoet\Cron\Workers\NewsletterTemplateThumbnails;
 use MailPoet\Cron\Workers\StatsNotifications\Worker;
 use MailPoet\Cron\Workers\SubscriberLinkTokens;
 use MailPoet\Cron\Workers\SubscribersLastEngagement;
 use MailPoet\Cron\Workers\UnsubscribeTokens;
 use MailPoet\Entities\FormEntity;
 use MailPoet\Entities\NewsletterEntity;
+use MailPoet\Entities\NewsletterLinkEntity;
+use MailPoet\Entities\NewsletterTemplateEntity;
 use MailPoet\Entities\ScheduledTaskEntity;
 use MailPoet\Entities\SendingQueueEntity;
 use MailPoet\Entities\StatisticsFormEntity;
@@ -22,7 +25,6 @@ use MailPoet\Entities\UserFlagEntity;
 use MailPoet\Form\FormsRepository;
 use MailPoet\Mailer\MailerLog;
 use MailPoet\Models\Newsletter;
-use MailPoet\Models\NewsletterLink;
 use MailPoet\Models\ScheduledTask;
 use MailPoet\Models\Segment;
 use MailPoet\Models\SendingQueue;
@@ -32,11 +34,13 @@ use MailPoet\Segments\WP;
 use MailPoet\Services\Bridge;
 use MailPoet\Settings\Pages;
 use MailPoet\Settings\SettingsController;
+use MailPoet\Settings\TrackingConfig;
 use MailPoet\Settings\UserFlagsRepository;
 use MailPoet\Subscribers\NewSubscriberNotificationMailer;
 use MailPoet\Subscribers\Source;
 use MailPoet\Subscription\Captcha;
 use MailPoet\Util\Helpers;
+use MailPoet\Util\Notices\ChangedTrackingNotice;
 use MailPoet\WP\Functions as WPFunctions;
 use MailPoetVendor\Carbon\Carbon;
 use MailPoetVendor\Doctrine\ORM\EntityManager;
@@ -155,6 +159,8 @@ class Populator {
       'LifestyleBlogB',
       'Painter',
       'FarmersMarket',
+      'ConfirmInterestBeforeDeactivation',
+      'ConfirmInterestOrUnsubscribe',
     ];
     $this->formsRepository = $formsRepository;
     $this->entityManager = $entityManager;
@@ -187,6 +193,9 @@ class Populator {
     $this->addPlacementStatusToForms();
     $this->migrateFormPlacement();
     $this->scheduleSubscriberLastEngagementDetection();
+    $this->moveNewsletterTemplatesThumbnailData();
+    $this->scheduleNewsletterTemplateThumbnails();
+    $this->updateToUnifiedTrackingSettings();
   }
 
   private function createMailPoetPage() {
@@ -221,8 +230,8 @@ class Populator {
   }
 
   private function createDefaultSettings() {
-    $currentUser = $this->wp->wpGetCurrentUser();
     $settingsDbVersion = $this->settings->fetch('db_version');
+    $currentUser = $this->wp->wpGetCurrentUser();
 
     // set cron trigger option to default method
     if (!$this->settings->fetch(CronTrigger::SETTING_NAME)) {
@@ -232,14 +241,19 @@ class Populator {
     }
 
     // set default sender info based on current user
-    $sender = [
-      'name' => $currentUser->display_name, // phpcs:ignore Squiz.NamingConventions.ValidVariableName.MemberNotCamelCaps
-      'address' => $currentUser->user_email, // phpcs:ignore Squiz.NamingConventions.ValidVariableName.MemberNotCamelCaps
+    $defaultSender = [
+      'name' => $currentUser->display_name ?: '', // phpcs:ignore Squiz.NamingConventions.ValidVariableName.MemberNotCamelCaps
+      'address' => $currentUser->user_email ?: '', // phpcs:ignore Squiz.NamingConventions.ValidVariableName.MemberNotCamelCaps
     ];
+    $savedSender = $this->settings->fetch('sender', []);
 
-    // set default from name & address
-    if (!$this->settings->fetch('sender')) {
-      $this->settings->set('sender', $sender);
+    /**
+     * Set default from name & address
+     * In some cases ( like when the plugin is getting activated other than from WP Admin ) user data may not
+     * still be set at this stage, so setting the defaults for `sender` is postponed
+     */
+    if (empty($savedSender) || empty($savedSender['address'])) {
+      $this->settings->set('sender', $defaultSender);
     }
 
     // enable signup confirmation by default
@@ -298,7 +312,7 @@ class Populator {
         'enabled' => empty($settingsDbVersion), // enable on new installs only
         'message' => $currentLabelText,
       ]);
-    } elseif (isset($woocommerceOptinOnCheckout['message']) && $woocommerceOptinOnCheckout['message'] === $legacyLabelText ) {
+    } elseif (isset($woocommerceOptinOnCheckout['message']) && $woocommerceOptinOnCheckout['message'] === $legacyLabelText) {
       $this->settings->set('woocommerce.optin_on_checkout.message', $currentLabelText);
     }
     // reset mailer log
@@ -428,32 +442,41 @@ class Populator {
       ],
       [
         'name' => 'group',
-        'newsletter_type' => Newsletter::TYPE_AUTOMATIC,
+        'newsletter_type' => NewsletterEntity::TYPE_AUTOMATIC,
       ],
       [
         'name' => 'event',
-        'newsletter_type' => Newsletter::TYPE_AUTOMATIC,
+        'newsletter_type' => NewsletterEntity::TYPE_AUTOMATIC,
       ],
       [
         'name' => 'sendTo',
-        'newsletter_type' => Newsletter::TYPE_AUTOMATIC,
+        'newsletter_type' => NewsletterEntity::TYPE_AUTOMATIC,
       ],
       [
         'name' => 'segment',
-        'newsletter_type' => Newsletter::TYPE_AUTOMATIC,
+        'newsletter_type' => NewsletterEntity::TYPE_AUTOMATIC,
       ],
       [
         'name' => 'afterTimeNumber',
-        'newsletter_type' => Newsletter::TYPE_AUTOMATIC,
+        'newsletter_type' => NewsletterEntity::TYPE_AUTOMATIC,
       ],
       [
         'name' => 'afterTimeType',
-        'newsletter_type' => Newsletter::TYPE_AUTOMATIC,
+        'newsletter_type' => NewsletterEntity::TYPE_AUTOMATIC,
       ],
       [
         'name' => 'meta',
-        'newsletter_type' => Newsletter::TYPE_AUTOMATIC,
+        'newsletter_type' => NewsletterEntity::TYPE_AUTOMATIC,
       ],
+      [
+        'name' => 'afterTimeNumber',
+        'newsletter_type' => NewsletterEntity::TYPE_RE_ENGAGEMENT,
+      ],
+      [
+        'name' => 'afterTimeType',
+        'newsletter_type' => NewsletterEntity::TYPE_RE_ENGAGEMENT,
+      ],
+
     ];
 
     return [
@@ -510,17 +533,19 @@ class Populator {
     }
   }
 
-  private function rowExists($table, $columns) {
+  private function rowExists(string $tableName, array $columns): bool {
     global $wpdb;
 
-    $conditions = array_map(function($key) {
-      return $key . '=%s';
-    }, array_keys($columns));
+    $conditions = array_map(function($key, $value) {
+      return esc_sql($key) . "='" . esc_sql($value) . "'";
+    }, array_keys($columns), $columns);
 
-    return $wpdb->get_var($wpdb->prepare(
-      "SELECT COUNT(*) FROM $table WHERE " . implode(' AND ', $conditions),
-      array_values($columns)
-    )) > 0;
+    $table = esc_sql($tableName);
+    // $conditions is escaped
+    // phpcs:ignore WordPressDotOrg.sniffs.DirectDB.UnescapedDBParameter
+    return $wpdb->get_var(
+      "SELECT COUNT(*) FROM $table WHERE " . implode(' AND ', $conditions)
+    ) > 0;
   }
 
   private function insertRow($table, $row) {
@@ -548,14 +573,14 @@ class Populator {
     $conditions = ['1=1'];
     $values = [];
     foreach ($where as $field => $value) {
-      $conditions[] = "`t1`.`$field` = `t2`.`$field`";
-      $conditions[] = "`t1`.`$field` = %s";
+      $conditions[] = "`t1`.`" . esc_sql($field) . "` = `t2`.`" . esc_sql($field) . "`";
+      $conditions[] = "`t1`.`" . esc_sql($field) . "` = %s";
       $values[] = $value;
     }
 
     $conditions = implode(' AND ', $conditions);
 
-    $sql = "DELETE FROM `$table` WHERE $conditions";
+    $table = esc_sql($table);
     return $wpdb->query(
       $wpdb->prepare(
         "DELETE t1 FROM $table t1, $table t2 WHERE t1.id < t2.id AND $conditions",
@@ -589,13 +614,12 @@ class Populator {
   private function updateMetaFields() {
     global $wpdb;
     // perform once for versions below or equal to 3.26.0
-    if (version_compare($this->settings->get('db_version', '3.26.1'), '3.26.0', '>')) {
+    if (version_compare((string)$this->settings->get('db_version', '3.26.1'), '3.26.0', '>')) {
       return false;
     }
     $tables = [ScheduledTask::$_table, SendingQueue::$_table];
     foreach ($tables as $table) {
-      $query = "UPDATE `%s` SET meta = NULL WHERE meta = 'null'";
-      $wpdb->query(sprintf($query, $table));
+      $wpdb->query("UPDATE `" . esc_sql($table) . "` SET meta = NULL WHERE meta = 'null'");
     }
     return true;
   }
@@ -629,15 +653,15 @@ class Populator {
   private function updateLastSubscribedAt() {
     global $wpdb;
     // perform once for versions below or equal to 3.42.0
-    if (version_compare($this->settings->get('db_version', '3.42.1'), '3.42.0', '>')) {
+    if (version_compare((string)$this->settings->get('db_version', '3.42.1'), '3.42.0', '>')) {
       return false;
     }
-    $query = "UPDATE `%s` SET last_subscribed_at = GREATEST(COALESCE(confirmed_at, 0), COALESCE(created_at, 0)) WHERE status != '%s' AND last_subscribed_at IS NULL;";
-    $wpdb->query(sprintf(
-      $query,
-      Subscriber::$_table,
+    $table = esc_sql(Subscriber::$_table);
+    $query = $wpdb->prepare(
+      "UPDATE `{$table}` SET last_subscribed_at = GREATEST(COALESCE(confirmed_at, 0), COALESCE(created_at, 0)) WHERE status != %s AND last_subscribed_at IS NULL;",
       Subscriber::STATUS_UNCONFIRMED
-    ));
+    );
+    $wpdb->query($query);
     return true;
   }
 
@@ -655,22 +679,25 @@ class Populator {
     );
   }
 
-  private function scheduleTask($type, $datetime) {
+  private function scheduleTask($type, $datetime, $priority = null) {
     $task = ScheduledTask::where('type', $type)
-      ->whereRaw('status = ? OR status IS NULL', [ScheduledTask::STATUS_SCHEDULED])
+      ->whereRaw('(status = ? OR status IS NULL)', [ScheduledTask::STATUS_SCHEDULED])
       ->findOne();
     if ($task) {
       return true;
     }
     $task = ScheduledTask::create();
     $task->type = $type;
+    if ($priority !== null) {
+      $task->priority = $priority;
+    }
     $task->status = ScheduledTask::STATUS_SCHEDULED;
     $task->scheduledAt = $datetime;
     $task->save();
   }
 
   private function enableStatsNotificationsForAutomatedEmails() {
-    if (version_compare($this->settings->get('db_version', '3.31.2'), '3.31.1', '>')) {
+    if (version_compare((string)$this->settings->get('db_version', '3.31.2'), '3.31.1', '>')) {
       return;
     }
     $settings = $this->settings->get(Worker::SETTINGS_KEY);
@@ -679,21 +706,20 @@ class Populator {
   }
 
   private function updateSentUnsubscribeLinksToInstantUnsubscribeLinks() {
-    if (version_compare($this->settings->get('db_version', '3.46.14'), '3.46.13', '>')) {
+    if (version_compare((string)$this->settings->get('db_version', '3.46.14'), '3.46.13', '>')) {
       return;
     }
-    $query = "UPDATE `%s` SET `url` = '%s' WHERE `url` = '%s';";
     global $wpdb;
-    $wpdb->query(sprintf(
-      $query,
-      NewsletterLink::$_table,
-      NewsletterLink::INSTANT_UNSUBSCRIBE_LINK_SHORT_CODE,
-      NewsletterLink::UNSUBSCRIBE_LINK_SHORT_CODE
+    $table = esc_sql($this->entityManager->getClassMetadata(NewsletterLinkEntity::class)->getTableName());
+    $wpdb->query($wpdb->prepare(
+      "UPDATE `$table` SET `url` = %s WHERE `url` = %s;",
+      NewsletterLinkEntity::INSTANT_UNSUBSCRIBE_LINK_SHORT_CODE,
+      NewsletterLinkEntity::UNSUBSCRIBE_LINK_SHORT_CODE
     ));
   }
 
   private function pauseTasksForPausedNewsletters() {
-    if (version_compare($this->settings->get('db_version', '3.60.5'), '3.60.4', '>')) {
+    if (version_compare((string)$this->settings->get('db_version', '3.60.5'), '3.60.4', '>')) {
       return;
     }
 
@@ -710,7 +736,7 @@ class Populator {
           t.status = :tStatusScheduled
           AND n.status = :nStatusDraft
     ";
-    $this->entityManager->getConnection()->executeUpdate(
+    $this->entityManager->getConnection()->executeStatement(
       $query,
       [
         'tStatusPaused' => ScheduledTaskEntity::STATUS_PAUSED,
@@ -721,7 +747,7 @@ class Populator {
   }
 
   private function addPlacementStatusToForms() {
-    if (version_compare($this->settings->get('db_version', '3.49.0'), '3.48.1', '>')) {
+    if (version_compare((string)$this->settings->get('db_version', '3.49.0'), '3.48.1', '>')) {
       return;
     }
     $forms = $this->formsRepository->findAll();
@@ -765,7 +791,7 @@ class Populator {
   }
 
   private function migrateFormPlacement() {
-    if (version_compare($this->settings->get('db_version', '3.50.0'), '3.49.1', '>')) {
+    if (version_compare((string)$this->settings->get('db_version', '3.50.0'), '3.49.1', '>')) {
       return;
     }
     $forms = $this->formsRepository->findAll();
@@ -851,7 +877,7 @@ class Populator {
 
   private function moveGoogleAnalyticsFromPremium() {
     global $wpdb;
-    if (version_compare($this->settings->get('db_version', '3.38.2'), '3.38.1', '>')) {
+    if (version_compare((string)$this->settings->get('db_version', '3.38.2'), '3.38.1', '>')) {
       return;
     }
     $premiumTableName = $wpdb->prefix . 'mailpoet_premium_newsletter_extra_data';
@@ -863,19 +889,14 @@ class Populator {
       )
     );
     if ($premiumTableExists) {
+      $table = esc_sql(Newsletter::$_table);
       $query = "
         UPDATE
-          `%s` as n
-        JOIN %s as ped ON n.id=ped.newsletter_id
+          `{$table}` as n
+        JOIN `$premiumTableName` as ped ON n.id=ped.newsletter_id
           SET n.ga_campaign = ped.ga_campaign
       ";
-      $wpdb->query(
-        sprintf(
-          $query,
-          Newsletter::$_table,
-          $premiumTableName
-        )
-      );
+      $wpdb->query($query);
     }
     return true;
   }
@@ -885,12 +906,53 @@ class Populator {
   }
 
   private function scheduleSubscriberLastEngagementDetection() {
-    if (version_compare($this->settings->get('db_version', '3.68.1'), '3.68.0', '>')) {
+    if (version_compare((string)$this->settings->get('db_version', '3.72.1'), '3.72.0', '>')) {
       return;
     }
     $this->scheduleTask(
       SubscribersLastEngagement::TASK_TYPE,
       Carbon::createFromTimestamp($this->wp->currentTime('timestamp'))
     );
+  }
+
+  private function scheduleNewsletterTemplateThumbnails() {
+    $this->scheduleTask(
+      NewsletterTemplateThumbnails::TASK_TYPE,
+      Carbon::createFromTimestamp($this->wp->currentTime('timestamp')),
+      ScheduledTaskEntity::PRIORITY_LOW
+    );
+  }
+
+  private function moveNewsletterTemplatesThumbnailData() {
+    if (version_compare((string)$this->settings->get('db_version', '3.73.3'), '3.73.2', '>')) {
+      return;
+    }
+    $newsletterTemplatesTable = $this->entityManager->getClassMetadata(NewsletterTemplateEntity::class)->getTableName();
+    $this->entityManager->getConnection()->executeQuery("
+      UPDATE " . $newsletterTemplatesTable . "
+      SET thumbnail_data = thumbnail, thumbnail = NULL
+      WHERE thumbnail LIKE 'data:image%';"
+    );
+  }
+
+  private function updateToUnifiedTrackingSettings() {
+    if (version_compare((string)$this->settings->get('db_version', '3.74.3'), '3.74.2', '>')) {
+      return;
+    }
+    $emailTracking = $this->settings->get('tracking.enabled', true);
+    $wooTrackingCookie = $this->settings->get('woocommerce.accept_cookie_revenue_tracking.enabled');
+    if ($wooTrackingCookie === null) { // No setting for WooCommerce Cookie Tracking - WooCommerce was not active
+      $trackingLevel = $emailTracking ? TrackingConfig::LEVEL_FULL : TrackingConfig::LEVEL_BASIC;
+    } elseif ($wooTrackingCookie) { // WooCommerce Cookie Tracking enabled
+      $trackingLevel = TrackingConfig::LEVEL_FULL;
+      // Cookie was enabled but tracking disabled and we are switching to full.
+      // So we activate an admin notice to let the user know that we activated tracking
+      if (!$emailTracking) {
+        $this->wp->setTransient(ChangedTrackingNotice::OPTION_NAME, true);
+      }
+    } else { // WooCommerce Tracking Cookie Disabled
+      $trackingLevel = $emailTracking ? TrackingConfig::LEVEL_PARTIAL : TrackingConfig::LEVEL_BASIC;
+    }
+    $this->settings->set('tracking.level', $trackingLevel);
   }
 }

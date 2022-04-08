@@ -6,6 +6,7 @@ namespace Automattic\WooCommerce\GoogleListingsAndAds\Infrastructure;
 use Automattic\WooCommerce\GoogleListingsAndAds\Assets\AssetsHandlerInterface;
 use Automattic\WooCommerce\GoogleListingsAndAds\Jobs\JobInitializer;
 use Automattic\WooCommerce\GoogleListingsAndAds\Internal\Requirements\PluginValidator;
+use Automattic\WooCommerce\GoogleListingsAndAds\Options\OptionsInterface;
 use Psr\Container\ContainerInterface;
 
 /**
@@ -47,6 +48,14 @@ final class GoogleListingsAndAdsPlugin implements Plugin {
 	 * @return void
 	 */
 	public function activate(): void {
+		// Delay activation if a required plugin is missing or an incompatible plugin is active.
+		if ( ! PluginValidator::validate() ) {
+			// Using update_option because we cannot access the option service
+			// when the services have not been registered.
+			update_option( 'gla_' . OptionsInterface::DELAYED_ACTIVATE, true );
+			return;
+		}
+
 		$this->maybe_register_services();
 
 		foreach ( $this->registered_services as $service ) {
@@ -56,6 +65,7 @@ final class GoogleListingsAndAdsPlugin implements Plugin {
 		}
 
 		flush_rewrite_rules();
+
 	}
 
 	/**
@@ -97,6 +107,13 @@ final class GoogleListingsAndAdsPlugin implements Plugin {
 				// register the job initializer only if it is available. see JobInitializer::is_needed.
 				if ( $this->container->has( JobInitializer::class ) ) {
 					$this->container->get( JobInitializer::class )->register();
+				}
+
+				// Check if activation is still pending.
+				if ( $this->container->get( OptionsInterface::class )->get( OptionsInterface::DELAYED_ACTIVATE ) ) {
+					$this->activate();
+					// Remove the DELAYED_ACTIVATE flag.
+					$this->container->get( OptionsInterface::class )->delete( OptionsInterface::DELAYED_ACTIVATE );
 				}
 			}
 		);

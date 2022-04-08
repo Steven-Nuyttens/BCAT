@@ -52,7 +52,7 @@ class UpdateAllProducts extends AbstractProductSyncerBatchedJob {
 	 * @return FilteredProductList
 	 */
 	protected function get_filtered_batch( int $batch_number ): FilteredProductList {
-		return $this->product_repository->find_sync_ready_product_ids( [], $this->get_batch_size(), $this->get_query_offset( $batch_number ) );
+		return $this->product_repository->find_sync_ready_product( [], $this->get_batch_size(), $this->get_query_offset( $batch_number ) );
 	}
 
 	/**
@@ -71,7 +71,13 @@ class UpdateAllProducts extends AbstractProductSyncerBatchedJob {
 	 * @throws JobException If the job failure rate is too high.
 	 */
 	public function handle_create_batch_action( int $batch_number ) {
-		$this->monitor->validate_failure_rate( $this );
+		$create_batch_hook = $this->get_create_batch_hook();
+		$create_batch_args = [ $batch_number ];
+
+		$this->monitor->validate_failure_rate( $this, $create_batch_hook, $create_batch_args );
+		if ( $this->retry_on_timeout ) {
+			$this->monitor->attach_timeout_monitor( $create_batch_hook, $create_batch_args );
+		}
 
 		$items = $this->get_filtered_batch( $batch_number );
 
@@ -89,6 +95,8 @@ class UpdateAllProducts extends AbstractProductSyncerBatchedJob {
 				$this->schedule_create_batch_action( $batch_number + 1 );
 			}
 		}
+
+		$this->monitor->detach_timeout_monitor( $create_batch_hook, $create_batch_args );
 	}
 
 	/**

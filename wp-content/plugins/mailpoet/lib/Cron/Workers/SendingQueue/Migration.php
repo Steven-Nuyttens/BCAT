@@ -6,8 +6,8 @@ if (!defined('ABSPATH')) exit;
 
 
 use MailPoet\Cron\Workers\SimpleWorker;
+use MailPoet\Entities\ScheduledTaskEntity;
 use MailPoet\Mailer\MailerLog;
-use MailPoet\Models\ScheduledTask;
 use MailPoet\Models\ScheduledTaskSubscriber;
 use MailPoet\Models\SendingQueue as SendingQueueModel;
 use MailPoet\WP\Functions as WPFunctions;
@@ -23,7 +23,7 @@ class Migration extends SimpleWorker {
     return empty($completedTasks);
   }
 
-  public function prepareTaskStrategy(ScheduledTask $task, $timer) {
+  public function prepareTaskStrategy(ScheduledTaskEntity $task, $timer) {
     $unmigratedColumns = $this->checkUnmigratedColumnsExist();
     $unmigratedQueuesCount = 0;
     $unmigratedQueueSubscribers = [];
@@ -33,14 +33,16 @@ class Migration extends SimpleWorker {
       $unmigratedQueueSubscribers = $this->getTaskIdsForUnmigratedSubscribers();
     }
 
-    if (!$unmigratedColumns ||
+    if (
+      !$unmigratedColumns ||
       ($unmigratedQueuesCount == 0
       && count($unmigratedQueueSubscribers) == 0)
     ) {
       // nothing to migrate, complete task
-      $task->processedAt = WPFunctions::get()->currentTime('mysql');
-      $task->status = ScheduledTask::STATUS_COMPLETED;
-      $task->save();
+      $task->setProcessedAt(Carbon::createFromTimestamp(WPFunctions::get()->currentTime('timestamp')));
+      $task->setStatus(ScheduledTaskEntity::STATUS_COMPLETED);
+      $this->scheduledTasksRepository->persist($task);
+      $this->scheduledTasksRepository->flush();
       $this->resumeSending();
       return false;
     }
@@ -77,7 +79,7 @@ class Migration extends SimpleWorker {
     }
   }
 
-  public function processTaskStrategy(ScheduledTask $task, $timer) {
+  public function processTaskStrategy(ScheduledTaskEntity $task, $timer) {
     $this->migrateSendingQueues($timer);
     $this->migrateSubscribers($timer);
     $this->resumeSending();
@@ -86,7 +88,7 @@ class Migration extends SimpleWorker {
 
   private function checkUnmigratedColumnsExist() {
     global $wpdb;
-    $existingColumns = $wpdb->get_col('DESC ' . SendingQueueModel::$_table);
+    $existingColumns = $wpdb->get_col('DESC ' . esc_sql(SendingQueueModel::$_table));
     return in_array('type', $existingColumns);
   }
 
@@ -136,22 +138,27 @@ class Migration extends SimpleWorker {
 
         foreach ($queueBatch as $queue) {
           // create a new scheduled task of type "sending"
+
+          // Constants are safe, queue ID is cast to int.
+          // phpcs:ignore WordPressDotOrg.sniffs.DirectDB.UnescapedDBParameter
           $wpdb->query(sprintf(
             'INSERT IGNORE INTO %1$s (`type`, %2$s) ' .
             'SELECT "sending", %2$s FROM %3$s WHERE `id` = %4$s',
             MP_SCHEDULED_TASKS_TABLE,
             '`' . join('`, `', $columnList) . '`',
             MP_SENDING_QUEUES_TABLE,
-            $queue['id']
+            (int)$queue['id']
           ));
+
           // link the queue with the task via task_id
           $newTaskId = $wpdb->insert_id; // phpcs:ignore Squiz.NamingConventions.ValidVariableName.MemberNotCamelCaps
-          $wpdb->query(sprintf(
-            'UPDATE %1$s SET `task_id` = %2$s WHERE `id` = %3$s',
-            MP_SENDING_QUEUES_TABLE,
+          $table = esc_sql(MP_SENDING_QUEUES_TABLE);
+          $query = $wpdb->prepare(
+            "UPDATE `$table` SET `task_id` = %s WHERE `id` = %s",
             $newTaskId,
             $queue['id']
-          ));
+          );
+          $wpdb->query($query);
         }
       }
     }
@@ -196,10 +203,10 @@ class Migration extends SimpleWorker {
     $migratedUnprocessedCount = ScheduledTaskSubscriber::getUnprocessedCount($taskId);
     $migratedProcessedCount = ScheduledTaskSubscriber::getProcessedCount($taskId);
 
-    $subscribers = $wpdb->get_var(sprintf(
-      'SELECT `subscribers` FROM %1$s WHERE `task_id` = %2$d ' .
-      'AND (`count_processed` > %3$d OR `count_to_process` > %4$d)',
-      MP_SENDING_QUEUES_TABLE,
+    $table = MP_SENDING_QUEUES_TABLE;
+    $subscribers = $wpdb->get_var($wpdb->prepare(
+      "SELECT `subscribers` FROM `$table` WHERE `task_id` = %d
+             AND (`count_processed` > %d OR `count_to_process` > %d)",
       $taskId,
       $migratedUnprocessedCount,
       $migratedProcessedCount

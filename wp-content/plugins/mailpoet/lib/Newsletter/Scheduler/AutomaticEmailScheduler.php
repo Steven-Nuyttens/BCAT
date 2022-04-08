@@ -10,14 +10,36 @@ use MailPoet\Models\ScheduledTask;
 use MailPoet\Models\ScheduledTaskSubscriber;
 use MailPoet\Models\SendingQueue;
 use MailPoet\Tasks\Sending as SendingTask;
+use MailPoet\WP\Functions as WPFunctions;
 
 class AutomaticEmailScheduler {
-  public function scheduleAutomaticEmail($group, $event, $schedulingCondition = false, $subscriberId = false, $meta = false) {
+  /** @var WPFunctions|null */
+  private $wp;
+
+  public function __construct(
+    ?WPFunctions $wp = null
+  ) {
+    $this->wp = $wp;
+  }
+
+  public function scheduleAutomaticEmail($group, $event, $schedulingCondition = false, $subscriberId = false, $meta = false, $metaModifier = null) {
     $newsletters = Scheduler::getNewsletters(Newsletter::TYPE_AUTOMATIC, $group);
     if (empty($newsletters)) return false;
     foreach ($newsletters as $newsletter) {
       if ($newsletter->event !== $event) continue;
       if (is_callable($schedulingCondition) && !$schedulingCondition($newsletter)) continue;
+
+      /**
+       * $meta will be the same for all newsletters by default. If we need to store newsletter-specific meta, the
+       * $metaModifier callback can be used.
+       *
+       * This was introduced because of WooCommerce product purchase automatic emails. We only want to store the
+       * product IDs that specifically triggered a newsletter, but $meta includes ALL the product IDs
+       * or category IDs from an order.
+       */
+      if (is_callable($metaModifier)) {
+        $meta = $metaModifier($newsletter, $meta);
+      }
       $this->createAutomaticEmailSendingTask($newsletter, $subscriberId, $meta);
     }
   }
@@ -95,7 +117,7 @@ class AutomaticEmailScheduler {
     $sendingTask->status = SendingQueue::STATUS_SCHEDULED;
     $sendingTask->priority = SendingQueue::PRIORITY_MEDIUM;
 
-    $sendingTask->scheduledAt = Scheduler::getScheduledTimeWithDelay($newsletter->afterTimeType, $newsletter->afterTimeNumber);
+    $sendingTask->scheduledAt = Scheduler::getScheduledTimeWithDelay($newsletter->afterTimeType, $newsletter->afterTimeNumber, $this->wp);
     return $sendingTask->save();
   }
 
@@ -105,7 +127,7 @@ class AutomaticEmailScheduler {
       $sendingTask->__set('meta', $meta);
     }
     // compute new 'scheduled_at' from now
-    $sendingTask->scheduledAt = Scheduler::getScheduledTimeWithDelay($newsletter->afterTimeType, $newsletter->afterTimeNumber);
+    $sendingTask->scheduledAt = Scheduler::getScheduledTimeWithDelay($newsletter->afterTimeType, $newsletter->afterTimeNumber, $this->wp);
     $sendingTask->save();
   }
 }

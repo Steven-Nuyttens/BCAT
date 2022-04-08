@@ -4,6 +4,7 @@ declare( strict_types=1 );
 namespace Automattic\WooCommerce\GoogleListingsAndAds\Proxies;
 
 use Automattic\WooCommerce\GoogleListingsAndAds\PluginHelper;
+use DateTimeZone;
 use WP as WPCore;
 use WP_Error;
 use WP_Post;
@@ -67,6 +68,15 @@ class WP {
 	}
 
 	/**
+	 * Get the locale of the current user.
+	 *
+	 * @return string
+	 */
+	public function get_user_locale(): string {
+		return get_user_locale();
+	}
+
+	/**
 	 * Run the WP dbDelta() function.
 	 *
 	 * @param string|string[] $sql The query or queries to run.
@@ -114,5 +124,57 @@ class WP {
 	 */
 	public function is_wp_error( $thing ): bool {
 		return is_wp_error( $thing );
+	}
+
+	/**
+	 * Retrieves the timezone from site settings as a string.
+	 *
+	 * Uses the `timezone_string` option to get a proper timezone if available,
+	 * otherwise falls back to an offset.
+	 *
+	 * @return string PHP timezone string or a ±HH:MM offset.
+	 *
+	 * @since 1.5.0
+	 */
+	public function wp_timezone_string(): string {
+		return wp_timezone_string();
+	}
+
+	/**
+	 * Retrieves the timezone from site settings as a `DateTimeZone` object.
+	 *
+	 * Timezone can be based on a PHP timezone string or a ±HH:MM offset.
+	 *
+	 * @return DateTimeZone Timezone object.
+	 *
+	 * @since 1.7.0
+	 */
+	public function wp_timezone(): DateTimeZone {
+		return wp_timezone();
+	}
+
+	/**
+	 * Convert float number to format based on the locale.
+	 *
+	 * @param float $number   The number to convert based on locale.
+	 * @param int   $decimals Optional. Precision of the number of decimal places. Default 0.
+	 *
+	 * @return string Converted number in string format.
+	 *
+	 * @since 1.7.0
+	 */
+	public function number_format_i18n( float $number, int $decimals = 0 ): string {
+		return number_format_i18n( $number, $decimals );
+	}
+
+	/**
+	 * Determines whether the current request is a WordPress Ajax request.
+	 *
+	 * @return bool True if it's a WordPress Ajax request, false otherwise.
+	 *
+	 * @since 1.10.0
+	 */
+	public function wp_doing_ajax(): bool {
+		return wp_doing_ajax();
 	}
 }

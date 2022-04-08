@@ -19,7 +19,6 @@
   var mailpoet_form_data = <%= json_encode(form) %>;
   var mailpoet_form_exports = <%= json_encode(form_exports) %>;
   var mailpoet_form_segments = <%= json_encode(segments) %>;
-  var mailpoet_pages = <%= json_encode(mailpoet_pages) %>;
   var mailpoet_custom_fields = <%= json_encode(custom_fields) %>;
   var mailpoet_date_types = <%= json_encode(date_types) %>;
   var mailpoet_date_formats = <%= json_encode(date_formats) %>;
@@ -38,6 +37,7 @@
   var mailpoet_tutorial_seen = '<%= editor_tutorial_seen %>';
   var mailpoet_tutorial_url = '<%= cdn_url('form-editor/tutorial.mp4') %>';
   var mailpoet_is_administrator = <%= is_administrator ? 'true' : 'false' %>;
+  var mailpoet_form_edit_url = "<%= admin_url('admin.php?page=mailpoet-form-editor&id=') %>";
   <% endautoescape %>
 </script>
 
@@ -103,6 +103,10 @@
   'formPlacementPlacementPositionLeft': _x('left', 'Placement of a slide in form, on the left or right side of the page'),
   'formPlacementPlacementPositionRight': _x('right', 'Placement of a slide in  form, on the left or right side of the page'),
   'formPlacementDelaySeconds': _x('%1s sec', 'times selection should be in the end "30 sec"'),
+  'formPlacementCookieExpiration': _x('Show form every', 'Label on a selection of different times'),
+  'formPlacementCookieExpirationAlways': _x('Always', 'times selection'),
+  'formPlacementCookieExpirationDay': _x('1 day', 'times selection should be in the end "1 day"'),
+  'formPlacementCookieExpirationDays': _x('%1s days', 'times selection should be in the end "7 days"'),
   'formPlacementSave': _x('Close', 'Text on a button to save and close a form'),
   'formPlacementOtherLabel': _x('Shortcode & other', 'Label in the form placement section (Other form placements)'),
   'animationHeader': __('Show animation on display'),
@@ -208,6 +212,7 @@
   'closeButtonHeading': __('Close Button Style'),
   'tutorialHeading': __('A video tour of the form editor'),
   'noName': _x('no name', 'fallback for forms without a name in a form list'),
+  'saveFormFirst': __('Please save the form first!'),
 }) %>
 <% endblock %>
 

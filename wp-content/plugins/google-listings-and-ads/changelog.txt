@@ -1,5 +1,146 @@
 *** WooCommerce Google Listings and Ads Changelog ***
 
+= 1.12.4 - 2022-04-06 =
+* Fix - Prevent fatal errors when migrating or syncing merchant settings.
+
+= 1.12.3 - 2022-04-05 =
+* Fix - Shipping times section not showing up and unable to proceed through the Setup Merchant Center flow.
+
+= 1.12.2 - 2022-04-05 =
+* Add - Unit test for AdsConversionAction.
+* Add - Unit test for AdsReport.
+* Fix - Prevent uncaught exception when Merchant account is not connected and we send a tracker snapshot.
+* Tweak - DB migration for shipping rates.
+* Update - Create all new campaigns as PMax campaigns.
+
+= 1.12.1 - 2022-04-01 =
+* Fix - Change shipping time options based on shipping rate options, to address missing shipping times data when shipping rates option is set to automatic or simple flat option, and shipping times option is set to complex manual option.
+* Fix - Do not sync shipping rates if the shipping time setting is set to complex.
+
+= 1.12.0 - 2022-03-29 =
+* Add - Additional data points for tracker snapshot.
+* Add - Enables merchants to select multiple countries as their audience when creating a Google Ads campaign (Smart Shopping Campaign).
+* Add - Google Listings And Ads product attributes icon.
+* Add - Integration with WooCommerce Shipping Zone to automatically sync shipping settings to Merchant Center.
+* FIx - Show right link and message in Paid Campaigns report when there is no data available.
+* Fix - Cleanup synced products locally when disconnecting Merchant Center account.
+* Fix - Combine duplicate account issues per country.
+* Fix - Fatal error when the plugin is activated before WooCommerce.
+* Fix - Fix incorrect HTTP status code when campaign creation and edit APIs call fails.
+* Fix - Limit failed delete retries to 5 and schedule again after one minute.
+* Fix - Performance issue related with NoteInitializer class.
+* Tweak - Add message to advise users to only connect Google Ads child account, not manager account.
+* Tweak - Catch errors related to invalid top-level domains specifically, and throw an error when the site's URL ends with an invalid top-level domain.
+* Tweak - Improve Ads error messages returned by the API.
+* Tweak - Simplify the format processing of number and amount values for all report metrics.
+* Update - Budget recommendation API supports for multiple countries.
+* Update - Campaigns APIs support for multiple countries.
+* Update - Change Campaign operations to batch requests.
+* Update - Refactor the Middleware class.
+* Update - Remove delete operations for campaign budget and ads group.
+* Update - WP-CLI dev dependencies.
+
+= 1.11.1 - 2022-02-10 =
+* Fix - Prevent a fatal error in case an existing Merchant Center account has an invalid domain.
+
+= 1.11.0 - 2022-02-02 =
+* Add - Unit tests for the Ads AccountController and AccountService.
+* Fix - Failure handling was not correctly displayed when the ads campaign creation and editing failed.
+* Fix - Fix the incorrect text color of the disabled "Disconnect account" buttons on the Settings page.
+* Fix - Makes country dropdown list always below the input box.
+* Fix - Prevent page flickering when loading admin pages of this extension.
+* Tweak - Change the importing way of lodash package to reduce the bundle size by 4 KB.
+* Tweak - Clean up outdated workarounds for WooCommerce 5.7.
+* Update - Google Ads API to V9.
+* Update - Google Content API library to 2.12.1.
+* Update - Inbox notifications have update promotion information from Google.
+* Update - Update Google Ads credit incentive in WordPress.org plugin landing page.
+* Update - Update Google Ads credit incentive info in plugin UI.
+
+= 1.10.0 - 2022-01-13 =
+* Add - Bulk update channel visibility for coupons.
+* Add - CES prompts for initial setup and campaign creation.
+* Add - Pre-fill shipping rates during free listing configuration wizard.
+* Add - Pre-fill shipping rates in Setup Merchant Center flow based on store's shipping settings.
+* Add - Sync products' shipping label/class to Merchant Center.
+* Fix - Drop WC 5.7 support.
+* Fix - Fatal error when creating Ads account without Site Title.
+* Fix - Fix/1078 shipping values flash during onboarding setup.
+* Fix - Fixing coupon test issue.
+* Fix - Group shipping rate by price and currency, and display the right currency in shipping rate input.
+* Fix - MC address validation.
+* Fix - Remove WC's `is_ajax` (deprecated in 6.1) in favor of proxied WP `wp_doing_ajax`.
+* Fix - Removed state/region address validation .
+* Fix - Replace `cloneDeep` within `.~/data/reducer.js` with functions that would not mutate other references of the state tree.
+* Tweak - WC 6.1 compatibility.
+
+= 1.9.0 - 2021-12-15 =
+* Add - Pre-fill target audience countries during onboarding using WooCommerce shipping zones. #1131
+* Add - Pre-fill target audience countries with suggestions based on WooCommerce settings. #1145
+* Fix -  Fatal error on plugin deactivation. #1142
+* Fix - Fix UI loading flicker in Setup MC Step 2 "Choose your audience" page. #1146
+* Fix - Fix e2e test after copy update. #1134
+* Tweak - Display help cursor for tooltip. #1130
+* Tweak - Update product channel visibility's styling to match that of coupons channel visibility. #1135
+* Tweak - Updated `@wordpress/scripts@17.1.0`. #1132
+* Tweak - WC 6.0 compatibility.
+* Tweak - WP 5.9 compatibility.
+* Update - min. WC version to 5.7. #1110
+
+= 1.8.0 - 2021-11-30 =
+* Add - Allow connecting to a different Google account in Setup MC. - #1072
+* Add - Disconnect Google Merchant Center account when switching Google account. - #1109
+* Add - Display account name and domain in Google Merchant Center cards. - #1112
+* Add - track events for UX improvements. - #1124
+* Fix - Refetch list of GMC accounts when users choose to connect to a different GMC accounts. - #1123
+* Tweak - Improve UX and adjust UI style for the accounts connection step of the Google Ads & Paid Campaign setup page. - #1102
+* Tweak - Minor layout tweak in Google Ads card in Setup Ads. - #1114
+* Update - Display better explanation tip for Google Merchant Center in Setup MC Step 1. - #1075
+* Update - UX improvement on Google account card in Setup MC. - #1072
+* Update - UX improvements on Google Merchant Center section in Setup MC flow. - #1094
+* Update - UX improvements on account connections in Setup Merchant Center flow. - #1119
+* Update - Update the WordPress.com account connection UI to the newer design. - #1068
+
+= 1.7.0 - 2021-11-24 =
+* Add - The partial authorization feature of Google account to the onboarding setup, Google Ads setup and reconnection pages.
+* Add - Accept login_hint when generating OAuth URL.
+* Add - Review request inbox notification after 10 conversions and 100 free listing clicks
+* Update – Add support for retrieving the name and domain from the Google API
+* Fix - Add support for Norwegian language, nb and nn
+* Fix - Report tabs lose active state when changing chart.
+* Tweak - Update `in_stock` and `out_of_stock` availability enums
+* Tweak - Retry async jobs on timeout
+* Tweak - Reduce the bundle size of the index.js file.
+* Tweak - refactored legacy WC menu highlighting effect.
+
+= 1.6.0 - 2021-11-09 =
+* Add - Coupon/promotion integration with Merchant Center.
+* Tweak - WooCommerce 5.9 compatibility.
+
+= 1.5.1 - 2021-10-13 =
+* Update - Changed minimum version of WordPress to 5.6 and WooCommerce to 5.5.
+* Fix - Change the way of getting WooCommerce admin settings to fix a compatibility issue in WooCommerce 5.8.
+* Tweak - WooCommerce 5.8 compatibility.
+
+= 1.5.0 - 2021-10-01 =
+* Add - Verify user's phone number via SMS or phone call at the last step of the onboarding flow and on the settings page. And update the verified phone number to user's connected Google Merchant Center account.
+* Add - Allow backorder stock availability for products.
+* Add - Set pre-order availability for products using the WooCommerce Pre-Orders extension.
+* Add - Warning notice when the Ads' currency is different from the store's one.
+* Add - Unit tests for the Merchant Google Service class.
+* Fix - Retry Merchant account creation after detecting invalid terms.
+* Fix - Render Ads Account's currency in Dashboard's table.
+* Fix - Don't render `DifferentCurrencyNotice` when the Ads account is disconnected.
+* Fix - Limit the number of synced additional product images to 10.
+* Fix - Split contact information settings page to phone and address settings.
+* Fix - Update phone number and store address pages flow.
+* Fix - Correct spelling/capitalization of "WordPress.com".
+* Fix - PHP notice when creating a product variation.
+* Fix - Bump E2E-related devDeps, bump tested WC version.
+* Tweak - Hide channel visibility box and attributes tab if the setup is not completed.
+* Tweak - Added a few more e2e tests and utils.
+* Tweak - WC 5.7 compatibility.
+
 = 1.4.3 - 2021-09-08 =
 * Fix - PHP notice when creating a product variation.
 * Tweak - Hide channel visibility box and attributes tab if the setup is not completed.

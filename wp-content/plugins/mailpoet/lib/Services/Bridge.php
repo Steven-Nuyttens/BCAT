@@ -135,7 +135,8 @@ class Bridge {
   }
 
   public function storeMSSKeyAndState($key, $state) {
-    if (empty($state['state'])
+    if (
+      empty($state['state'])
       || $state['state'] === self::KEY_CHECK_ERROR
     ) {
       return false;
@@ -170,7 +171,8 @@ class Bridge {
     ];
 
     if (!empty($result['code']) && isset($stateMap[$result['code']])) {
-      if ($stateMap[$result['code']] == self::KEY_VALID
+      if (
+        $stateMap[$result['code']] == self::KEY_VALID
         && !empty($result['data']['expire_at'])
       ) {
         $keyState = self::KEY_EXPIRING;
@@ -188,7 +190,8 @@ class Bridge {
   }
 
   public function storePremiumKeyAndState($key, $state) {
-    if (empty($state['state'])
+    if (
+      empty($state['state'])
       || $state['state'] === self::KEY_CHECK_ERROR
     ) {
       return false;
@@ -217,20 +220,8 @@ class Bridge {
     return $state;
   }
 
-  public function updateSubscriberCount($result) {
-    if (
-      (
-        !empty($result['state'])
-        && (
-          $result['state'] === self::KEY_VALID
-          || $result['state'] === self::KEY_EXPIRING
-        )
-      )
-      && ($this->api instanceof API)
-    ) {
-      return $this->api->updateSubscriberCount($this->subscribersFeature->getSubscribersCount());
-    }
-    return null;
+  public function updateSubscriberCount(string $key): bool {
+    return $this->getApi($key)->updateSubscriberCount($this->subscribersFeature->getSubscribersCount());
   }
 
   public static function invalidateKey() {
@@ -242,20 +233,21 @@ class Bridge {
   }
 
   public function onSettingsSave($settings) {
-    $apiKeySet = !empty($settings[Mailer::MAILER_CONFIG_SETTING_NAME]['mailpoet_api_key']);
-    $premiumKeySet = !empty($settings['premium']['premium_key']);
-    if ($apiKeySet) {
-      $apiKey = $settings[Mailer::MAILER_CONFIG_SETTING_NAME]['mailpoet_api_key'];
-      $state = $this->checkMSSKey($apiKey);
-      $this->storeMSSKeyAndState($apiKey, $state);
-      if (self::isMPSendingServiceEnabled()) {
-        $this->updateSubscriberCount($state);
-      }
+    $apiKey = $settings[Mailer::MAILER_CONFIG_SETTING_NAME]['mailpoet_api_key'] ?? null;
+    $premiumKey = $settings['premium']['premium_key'] ?? null;
+    if (!empty($apiKey)) {
+      $apiKeyState = $this->checkMSSKey($apiKey);
+      $this->storeMSSKeyAndState($apiKey, $apiKeyState);
     }
-    if ($premiumKeySet) {
-      $premiumKey = $settings['premium']['premium_key'];
-      $state = $this->checkPremiumKey($premiumKey);
-      $this->storePremiumKeyAndState($premiumKey, $state);
+    if (!empty($premiumKey)) {
+      $premiumState = $this->checkPremiumKey($premiumKey);
+      $this->storePremiumKeyAndState($premiumKey, $premiumState);
+    }
+    if ($apiKey && !empty($apiKeyState) && $apiKeyState['state'] === self::KEY_VALID) {
+      return $this->updateSubscriberCount($apiKey);
+    }
+    if ($premiumKey && !empty($premiumState) && $premiumState['state'] === self::KEY_VALID) {
+      return $this->updateSubscriberCount($apiKey);
     }
   }
 }

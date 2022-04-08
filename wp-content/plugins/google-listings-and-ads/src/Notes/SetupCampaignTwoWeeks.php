@@ -3,112 +3,79 @@ declare( strict_types=1 );
 
 namespace Automattic\WooCommerce\GoogleListingsAndAds\Notes;
 
-use Automattic\WooCommerce\Admin\Notes\DataStore;
-use Automattic\WooCommerce\Admin\Notes\Note;
-use Automattic\WooCommerce\Admin\Notes\Notes;
-use Automattic\WooCommerce\GoogleListingsAndAds\Ads\AdsAwareInterface;
-use Automattic\WooCommerce\GoogleListingsAndAds\Ads\AdsAwareTrait;
-use Automattic\WooCommerce\GoogleListingsAndAds\HelperTraits\Utilities;
-use Automattic\WooCommerce\GoogleListingsAndAds\Infrastructure\Deactivateable;
-use Automattic\WooCommerce\GoogleListingsAndAds\Infrastructure\Registerable;
-use Automattic\WooCommerce\GoogleListingsAndAds\Infrastructure\Service;
-use Automattic\WooCommerce\GoogleListingsAndAds\Options\OptionsAwareInterface;
-use Automattic\WooCommerce\GoogleListingsAndAds\PluginHelper;
-use WC_Data_Store;
+use Automattic\WooCommerce\Admin\Notes\Note as NoteEntry;
+
+defined( 'ABSPATH' ) || exit;
 
 /**
  * Class SetupCampaignTwoWeeks
  *
  * @package Automattic\WooCommerce\GoogleListingsAndAds\Notes
  */
-class SetupCampaignTwoWeeks implements Deactivateable, Service, Registerable, OptionsAwareInterface, AdsAwareInterface {
-
-	use AdsAwareTrait;
-	use PluginHelper;
-	use Utilities;
-
-	public const NOTE_NAME = 'gla-setup-campaign-two-weeks';
+class SetupCampaignTwoWeeks extends AbstractSetupCampaign {
 
 	/**
-	 * Register a service.
-	 */
-	public function register(): void {
-		add_action(
-			'admin_init',
-			function() {
-				$this->possibly_add_note();
-			}
-		);
-	}
-
-	/**
-	 * Possibly add the note
-	 */
-	public function possibly_add_note(): void {
-		if ( ! $this->can_add_note() ) {
-			return;
-		}
-
-		$note = new Note();
-		$note->set_title( __( 'Launch your first ad in a few steps', 'google-listings-and-ads' ) );
-		$note->set_content( __( 'You’re just a few steps away from reaching new shoppers across Google. Create your first paid ad campaign today.', 'google-listings-and-ads' ) );
-		$note->set_content_data( (object) [] );
-		$note->set_type( Note::E_WC_ADMIN_NOTE_INFORMATIONAL );
-		$note->set_layout( 'plain' );
-		$note->set_image( '' );
-		$note->set_name( self::NOTE_NAME );
-		$note->set_source( $this->get_slug() );
-		$note->add_action(
-			'setup-campaign',
-			__( 'Get started', 'google-listings-and-ads' ),
-			$this->get_setup_ads_url()
-		);
-		$note->save();
-	}
-
-	/**
-	 * Checks if a note can and should be added.
+	 * Get the note's unique name.
 	 *
-	 * Check if ads setup IS NOT complete
-	 * Check if it is > 14 days ago from DATE OF SETUP COMPLETION
-	 * Send notification
-	 *
-	 * @return bool
+	 * @return string
 	 */
-	public function can_add_note(): bool {
-		if ( ! class_exists( WC_Data_Store::class ) ) {
-			return false;
-		}
-
-		/** @var DataStore $data_store */
-		$data_store = WC_Data_Store::load( 'admin-note' );
-		$note_ids   = $data_store->get_notes_with_name( self::NOTE_NAME );
-
-		if ( ! empty( $note_ids ) ) {
-			return false;
-		}
-
-		if ( $this->ads_service->is_setup_complete() ) {
-			return false;
-		}
-
-		if ( ! $this->gla_setup_for( 14 * DAY_IN_SECONDS ) ) {
-			return false;
-		}
-
-		return true;
+	public function get_name(): string {
+		return 'gla-setup-campaign-two-weeks';
 	}
 
 	/**
-	 * Deactivate the service.
+	 * Get the number of days after which to add the note.
+	 *
+	 * @since 1.11.0
+	 *
+	 * @return int
+	 */
+	protected function get_gla_setup_days(): int {
+		return 14;
+	}
+
+	/**
+	 * Set the title and content of the Note.
+	 *
+	 * @since 1.11.0
+	 *
+	 * @param NoteEntry $note
 	 *
 	 * @return void
 	 */
-	public function deactivate(): void {
-		if ( ! class_exists( Notes::class ) ) {
-			return;
+	protected function set_title_and_content( NoteEntry $note ): void {
+		if ( ! $this->ads_service->is_setup_started() ) {
+			$note->set_title( __( 'Reach more shoppers with paid listings on Google', 'google-listings-and-ads' ) );
+			$note->set_content(
+				__(
+					'Your products are ready for Google Ads! Connect with the right shoppers at the right moment when they’re searching for products like yours. Connect your Google Ads account to create your first paid ad campaign.',
+					'google-listings-and-ads'
+				)
+			);
+			$note->add_action(
+				'setup-campaign',
+				__( 'Set up Google Ads', 'google-listings-and-ads' ),
+				$this->get_setup_ads_url(),
+				NoteEntry::E_WC_ADMIN_NOTE_ACTIONED,
+				true
+			);
+		} else {
+			$note->set_title(
+				__( 'Finish setting up your ads campaign and boost your sales', 'google-listings-and-ads' )
+			);
+			$note->set_content(
+				__(
+					"You're just a few steps away from reaching new shoppers across Google. Finish connecting your account, create your campaign, pick your budget, and easily measure the impact of your ads.",
+					'google-listings-and-ads'
+				)
+			);
+			$note->add_action(
+				'setup-campaign',
+				__( 'Complete Setup', 'google-listings-and-ads' ),
+				$this->get_setup_ads_url(),
+				NoteEntry::E_WC_ADMIN_NOTE_ACTIONED,
+				true
+			);
 		}
-
-		Notes::delete_notes_with_name( self::NOTE_NAME );
 	}
 }

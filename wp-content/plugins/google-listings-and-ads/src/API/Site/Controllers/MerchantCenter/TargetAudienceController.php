@@ -6,14 +6,16 @@ namespace Automattic\WooCommerce\GoogleListingsAndAds\API\Site\Controllers\Merch
 use Automattic\WooCommerce\GoogleListingsAndAds\API\Site\Controllers\BaseOptionsController;
 use Automattic\WooCommerce\GoogleListingsAndAds\API\Site\Controllers\CountryCodeTrait;
 use Automattic\WooCommerce\GoogleListingsAndAds\API\TransportMethods;
+use Automattic\WooCommerce\GoogleListingsAndAds\Google\GoogleHelper;
 use Automattic\WooCommerce\GoogleListingsAndAds\Internal\Interfaces\ISO3166AwareInterface;
 use Automattic\WooCommerce\GoogleListingsAndAds\Options\OptionsInterface;
 use Automattic\WooCommerce\GoogleListingsAndAds\Proxies\RESTServer;
+use Automattic\WooCommerce\GoogleListingsAndAds\Proxies\WC;
 use Automattic\WooCommerce\GoogleListingsAndAds\Proxies\WP;
+use Automattic\WooCommerce\GoogleListingsAndAds\Shipping\ShippingZone;
 use Locale;
 use WP_REST_Request as Request;
 use WP_REST_Response as Response;
-
 use function wp_get_available_translations;
 
 defined( 'ABSPATH' ) || exit;
@@ -35,14 +37,35 @@ class TargetAudienceController extends BaseOptionsController implements ISO3166A
 	protected $wp;
 
 	/**
-	 * BaseController constructor.
-	 *
-	 * @param RESTServer $server
-	 * @param WP         $wp
+	 * @var ShippingZone
 	 */
-	public function __construct( RESTServer $server, WP $wp ) {
+	protected $shipping_zone;
+
+	/**
+	 * @var WC
+	 */
+	protected $wc;
+
+	/**
+	 * @var GoogleHelper
+	 */
+	protected $google_helper;
+
+	/**
+	 * TargetAudienceController constructor.
+	 *
+	 * @param RESTServer   $server
+	 * @param WP           $wp
+	 * @param WC           $wc
+	 * @param ShippingZone $shipping_zone
+	 * @param GoogleHelper $google_helper
+	 */
+	public function __construct( RESTServer $server, WP $wp, WC $wc, ShippingZone $shipping_zone, GoogleHelper $google_helper ) {
 		parent::__construct( $server );
-		$this->wp = $wp;
+		$this->wp            = $wp;
+		$this->wc            = $wc;
+		$this->shipping_zone = $shipping_zone;
+		$this->google_helper = $google_helper;
 	}
 
 	/**
@@ -66,6 +89,17 @@ class TargetAudienceController extends BaseOptionsController implements ISO3166A
 				'schema' => $this->get_api_response_schema_callback(),
 			]
 		);
+		$this->register_route(
+			'mc/target_audience/suggestions',
+			[
+				[
+					'methods'             => TransportMethods::READABLE,
+					'callback'            => $this->get_suggest_audience_callback(),
+					'permission_callback' => $this->get_permission_callback(),
+				],
+				'schema' => $this->get_api_response_schema_callback(),
+			]
+		);
 	}
 
 	/**
@@ -76,6 +110,19 @@ class TargetAudienceController extends BaseOptionsController implements ISO3166A
 	protected function get_read_audience_callback(): callable {
 		return function( Request $request ) {
 			return $this->prepare_item_for_response( $this->get_target_audience_option(), $request );
+		};
+	}
+
+	/**
+	 * Get the callback function for suggesting the target audience data.
+	 *
+	 * @return callable
+	 *
+	 * @since 1.9.0
+	 */
+	protected function get_suggest_audience_callback(): callable {
+		return function( Request $request ) {
+			return $this->prepare_item_for_response( $this->get_target_audience_suggestion(), $request );
 		};
 	}
 
@@ -143,6 +190,27 @@ class TargetAudienceController extends BaseOptionsController implements ISO3166A
 	 */
 	protected function get_target_audience_option(): array {
 		return $this->options->get( OptionsInterface::TARGET_AUDIENCE, [] );
+	}
+
+	/**
+	 * Get the suggested values for the target audience option.
+	 *
+	 * @return string[]
+	 *
+	 * @since 1.9.0
+	 */
+	protected function get_target_audience_suggestion(): array {
+		$countries    = $this->shipping_zone->get_shipping_countries();
+		$base_country = $this->wc->get_base_country();
+		// Add WooCommerce store country if it's supported and not already in the list.
+		if ( ! in_array( $base_country, $countries, true ) && $this->google_helper->is_country_supported( $base_country ) ) {
+			$countries[] = $base_country;
+		}
+
+		return [
+			'location'  => 'selected',
+			'countries' => $countries,
+		];
 	}
 
 	/**

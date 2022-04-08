@@ -75,13 +75,26 @@ class Manage {
   }
 
   public function onSave() {
-    $action = (isset($_POST['action']) ? $_POST['action'] : null);
-    $token = (isset($_POST['token']) ? $_POST['token'] : null);
+    $action = (isset($_POST['action']) ? sanitize_text_field(wp_unslash($_POST['action'])) : '');
+    $token = (isset($_POST['token']) ? sanitize_text_field(wp_unslash($_POST['token'])) : '');
 
     if ($action !== 'mailpoet_subscription_update' || empty($_POST['data'])) {
       $this->urlHelper->redirectBack();
     }
-    $subscriberData = $_POST['data'];
+
+    $sanitize = function($value) {
+      if (is_array($value)) {
+        foreach ($value as $k => $v) {
+          $value[sanitize_text_field($k)] = sanitize_text_field($v);
+        }
+        return $value;
+      };
+      return sanitize_text_field($value);
+    };
+
+    // custom sanitization via $sanitize
+    //phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+    $subscriberData = array_map($sanitize, wp_unslash((array)$_POST['data']));
     $subscriberData = $this->fieldNameObfuscator->deobfuscateFormPayload($subscriberData);
 
     $result = [];
@@ -176,7 +189,13 @@ class Manage {
   private function filterOutEmptyMandatoryFields(array $subscriberData) {
     $mandatory = $this->getMandatory();
     foreach ($mandatory as $name) {
-      if (strlen(trim($subscriberData[$name])) === 0) {
+      if (!isset($subscriberData[$name])) {
+        continue;
+      }
+      if (is_array($subscriberData[$name]) && count(array_filter($subscriberData[$name])) === 0) {
+        unset($subscriberData[$name]);
+      }
+      if (is_string($subscriberData[$name]) && strlen(trim($subscriberData[$name])) === 0) {
         unset($subscriberData[$name]);
       }
     }

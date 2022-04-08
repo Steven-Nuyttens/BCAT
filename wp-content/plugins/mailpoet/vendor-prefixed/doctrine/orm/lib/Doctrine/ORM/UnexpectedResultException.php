@@ -1,2 +1,8 @@
 <?php
- namespace MailPoetVendor\Doctrine\ORM; if (!defined('ABSPATH')) exit; class UnexpectedResultException extends ORMException { } 
+declare (strict_types=1);
+namespace MailPoetVendor\Doctrine\ORM;
+if (!defined('ABSPATH')) exit;
+use MailPoetVendor\Doctrine\ORM\Exception\ORMException;
+class UnexpectedResultException extends ORMException
+{
+}

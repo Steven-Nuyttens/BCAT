@@ -69,6 +69,14 @@ class HooksWooCommerce {
     }
   }
 
+  public function subscribeOnOrderPay($orderId) {
+    try {
+      $this->woocommerceSubscription->subscribeOnOrderPay($orderId);
+    } catch (\Throwable $e) {
+      $this->logError($e, 'WooCommerce Subscription');
+    }
+  }
+
   public function disableWooCommerceSettings() {
     try {
       $this->woocommerceSettings->disableWooCommerceSettings();
@@ -130,7 +138,7 @@ class HooksWooCommerce {
 
   private function logError(\Throwable $e, $name) {
     $logger = $this->loggerFactory->getLogger($name);
-    $logger->addError($e->getMessage(), [
+    $logger->error($e->getMessage(), [
       'file' => $e->getFile(),
       'line' => $e->getLine(),
     ]);

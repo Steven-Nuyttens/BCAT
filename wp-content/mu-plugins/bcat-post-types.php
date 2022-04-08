@@ -54,6 +54,23 @@ function university_post_types() {
     'menu_icon' => 'dashicons-businessman'
   ));
 
+  // Player post type
+
+  register_post_type('player', array(
+    'supports' => array('title', 'editor', 'thumbnail'),
+    'rewrite' => array('slug' => 'players'),
+    'has_archive' => true,
+    'public' => true,
+    'labels' => array(
+      'name' => 'Players',
+      'add_new_item' => 'Add New Player',
+      'edit_item' => 'Edit Player',
+      'all_items' => 'All Players',
+      'singular_name' => 'Player'
+    ),
+    'menu_icon' => 'dashicons-universal-access'
+  ));
+
   // Sporthal post type
 
   register_post_type('sporthal', array(

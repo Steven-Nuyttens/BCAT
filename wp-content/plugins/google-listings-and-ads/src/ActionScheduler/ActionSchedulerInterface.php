@@ -3,6 +3,8 @@ declare( strict_types=1 );
 
 namespace Automattic\WooCommerce\GoogleListingsAndAds\ActionScheduler;
 
+use ActionScheduler_Action;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -69,7 +71,7 @@ interface ActionSchedulerInterface {
 	 *
 	 * @return int The action ID.
 	 *
-	 * @see http://en.wikipedia.org/wiki/Cron
+	 * @see https://en.wikipedia.org/wiki/Cron
 	 *   *    *    *    *    *    *
 	 *   ┬    ┬    ┬    ┬    ┬    ┬
 	 *   |    |    |    |    |    |
@@ -125,10 +127,21 @@ interface ActionSchedulerInterface {
 	 * @param string     $hook The hook that the job will trigger.
 	 * @param array|null $args Args that would have been passed to the job.
 	 *
-	 * @return string The scheduled action ID if a scheduled action was found.
+	 * @return int The scheduled action ID if a scheduled action was found.
 	 *
 	 * @throws ActionSchedulerException If no matching action found.
 	 */
-	public function cancel( string $hook, $args = [] ): string;
+	public function cancel( string $hook, $args = [] );
+
+	/**
+	 * Retrieve an action.
+	 *
+	 * @param int $action_id Action ID.
+	 *
+	 * @return ActionScheduler_Action
+	 *
+	 * @since 1.7.0
+	 */
+	public function fetch_action( int $action_id ): ActionScheduler_Action;
 
 }

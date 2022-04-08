@@ -10,6 +10,16 @@ class Helper {
     return class_exists('WooCommerce');
   }
 
+  public function isWooCommerceBlocksActive($min_version = '') {
+    if (!class_exists('\Automattic\WooCommerce\Blocks\Package')) {
+      return false;
+    }
+    if ($min_version) {
+      return version_compare(\Automattic\WooCommerce\Blocks\Package::get_version(), $min_version, '>=');
+    }
+    return true;
+  }
+
   public function WC() {
     return WC();
   }
@@ -56,10 +66,10 @@ class Helper {
 
   public function getOrdersCountCreatedBefore($dateTime) {
     global $wpdb;
-    $result = $wpdb->get_var( "
+    $result = $wpdb->get_var($wpdb->prepare("
         SELECT DISTINCT count(p.ID) FROM {$wpdb->prefix}posts as p
-        WHERE p.post_type = 'shop_order' AND p.post_date < '{$dateTime}'
-    " );
+        WHERE p.post_type = 'shop_order' AND p.post_date < %s
+    ", $dateTime));
     return (int)$result;
   }
 

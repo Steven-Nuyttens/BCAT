@@ -4,8 +4,8 @@ declare( strict_types=1 );
 namespace Automattic\WooCommerce\GoogleListingsAndAds\API\Site\Controllers;
 
 use Automattic\WooCommerce\GoogleListingsAndAds\Proxies\RESTServer;
+use Automattic\WooCommerce\GoogleListingsAndAds\Proxies\WP;
 use DateTime;
-use DateTimeZone;
 use Psr\Container\ContainerInterface;
 use WP_REST_Request as Request;
 
@@ -152,7 +152,9 @@ abstract class BaseReportsController extends BaseController {
 	 * @param array $query_args Array of query arguments.
 	 */
 	protected function normalize_timezones( &$query_args ) {
-		$local_tz = new DateTimeZone( wc_timezone_string() );
+		/** @var WP $wp */
+		$wp       = $this->container->get( WP::class );
+		$local_tz = $wp->wp_timezone();
 
 		foreach ( [ 'before', 'after' ] as $query_arg_key ) {
 			if ( isset( $query_args[ $query_arg_key ] ) && is_string( $query_args[ $query_arg_key ] ) ) {

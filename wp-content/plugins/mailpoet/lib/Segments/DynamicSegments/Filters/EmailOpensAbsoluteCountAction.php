@@ -31,7 +31,7 @@ class EmailOpensAbsoluteCountAction implements Filter {
     $filterData = $filter->getFilterData();
     $days = $filterData->getParam('days');
     $operator = $filterData->getParam('operator');
-    $action = $filterData->getParam('action');
+    $action = $filterData->getAction();
     $parameterSuffix = $filter->getId() ?? Security::generateRandomString();
     $statsTable = $this->entityManager->getClassMetadata(StatisticsOpenEntity::class)->getTableName();
     $subscribersTable = $this->entityManager->getClassMetadata(SubscriberEntity::class)->getTableName();
@@ -43,7 +43,11 @@ class EmailOpensAbsoluteCountAction implements Filter {
     );
     $queryBuilder->setParameter('newer' . $parameterSuffix, CarbonImmutable::now()->subDays($days)->startOfDay());
     $queryBuilder->groupBy("$subscribersTable.id");
-    if ($operator === 'less') {
+    if ($operator === 'equals') {
+      $queryBuilder->having("count(opens.id) = :opens" . $parameterSuffix);
+    } else if ($operator === 'not_equals') {
+      $queryBuilder->having("count(opens.id) != :opens" . $parameterSuffix);
+    } else if ($operator === 'less') {
       $queryBuilder->having("count(opens.id) < :opens" . $parameterSuffix);
     } else {
       $queryBuilder->having("count(opens.id) > :opens" . $parameterSuffix);

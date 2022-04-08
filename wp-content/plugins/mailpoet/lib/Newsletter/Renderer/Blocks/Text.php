@@ -94,16 +94,17 @@ class Text {
           false;
         // if previous or next paragraphs are empty OR previous paragraph
         // is a heading, insert a break line
-        if (!$nextElement ||
-            !$previousElement ||
-            (preg_match('/h\d+/', $previousElementTag))
+        if (
+          !$nextElement ||
+          !$previousElement ||
+          (preg_match('/h\d+/', $previousElementTag))
         ) {
           $paragraph = $this->insertLineBreak($paragraph);
         }
         $paragraph->remove();
         continue;
       }
-      $style = $paragraph->style;
+      $style = (string)$paragraph->style;
       if (!preg_match('/text-align/i', $style)) {
         $style = 'text-align: left;' . $style;
       }
@@ -123,8 +124,8 @@ class Text {
         $lineBreaks;
       if ($paragraph->hasClass(PostContentManager::WP_POST_CLASS)) {
         $paragraph->removeClass(PostContentManager::WP_POST_CLASS);
-        // if this element is followed by a paragraph, add double line breaks
-        $lineBreaks = ($nextElement && preg_match('/<p/i', $nextElement->getOuterText())) ?
+        // if this element is followed by a paragraph or heading, add double line breaks
+        $lineBreaks = ($nextElement && preg_match('/<(p|h[1-6]{1})/i', $nextElement->getOuterText())) ?
           '<br /><br />' :
           $lineBreaks;
       }

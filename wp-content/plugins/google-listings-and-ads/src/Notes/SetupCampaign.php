@@ -3,112 +3,83 @@ declare( strict_types=1 );
 
 namespace Automattic\WooCommerce\GoogleListingsAndAds\Notes;
 
-use Automattic\WooCommerce\Admin\Notes\DataStore;
-use Automattic\WooCommerce\Admin\Notes\Note;
-use Automattic\WooCommerce\Admin\Notes\Notes;
-use Automattic\WooCommerce\GoogleListingsAndAds\Ads\AdsAwareInterface;
-use Automattic\WooCommerce\GoogleListingsAndAds\Ads\AdsAwareTrait;
-use Automattic\WooCommerce\GoogleListingsAndAds\HelperTraits\Utilities;
-use Automattic\WooCommerce\GoogleListingsAndAds\Infrastructure\Deactivateable;
-use Automattic\WooCommerce\GoogleListingsAndAds\Infrastructure\Registerable;
-use Automattic\WooCommerce\GoogleListingsAndAds\Infrastructure\Service;
-use Automattic\WooCommerce\GoogleListingsAndAds\Options\OptionsAwareInterface;
-use Automattic\WooCommerce\GoogleListingsAndAds\PluginHelper;
-use WC_Data_Store;
+use Automattic\WooCommerce\Admin\Notes\Note as NoteEntry;
+
+defined( 'ABSPATH' ) || exit;
 
 /**
  * Class SetupCampaign
  *
  * @package Automattic\WooCommerce\GoogleListingsAndAds\Notes
  */
-class SetupCampaign implements Deactivateable, Service, Registerable, OptionsAwareInterface, AdsAwareInterface {
-
-	use AdsAwareTrait;
-	use PluginHelper;
-	use Utilities;
-
-	public const NOTE_NAME = 'gla-setup-campaign';
+class SetupCampaign extends AbstractSetupCampaign {
 
 	/**
-	 * Register a service.
-	 */
-	public function register(): void {
-		add_action(
-			'admin_init',
-			function() {
-				$this->possibly_add_note();
-			}
-		);
-	}
-
-	/**
-	 * Possibly add the note
-	 */
-	public function possibly_add_note(): void {
-		if ( ! $this->can_add_note() ) {
-			return;
-		}
-
-		$note = new Note();
-		$note->set_title( __( 'Create your first campaign to boost sales', 'google-listings-and-ads' ) );
-		$note->set_content( __( 'Leverage the power of paid ads to list products on Google Search, Shopping, YouTube, Gmail and the Display Network and drive sales.', 'google-listings-and-ads' ) );
-		$note->set_content_data( (object) [] );
-		$note->set_type( Note::E_WC_ADMIN_NOTE_INFORMATIONAL );
-		$note->set_layout( 'plain' );
-		$note->set_image( '' );
-		$note->set_name( self::NOTE_NAME );
-		$note->set_source( $this->get_slug() );
-		$note->add_action(
-			'setup-campaign',
-			__( 'Get started', 'google-listings-and-ads' ),
-			$this->get_setup_ads_url()
-		);
-		$note->save();
-	}
-
-	/**
-	 * Checks if a note can and should be added.
+	 * Get the note's unique name.
 	 *
-	 * Check if ads setup IS NOT complete
-	 * Check if it is > 3 days ago from DATE OF SETUP COMPLETION
-	 * Send notification
-	 *
-	 * @return bool
+	 * @return string
 	 */
-	public function can_add_note(): bool {
-		if ( ! class_exists( WC_Data_Store::class ) ) {
-			return false;
-		}
-
-		/** @var DataStore $data_store */
-		$data_store = WC_Data_Store::load( 'admin-note' );
-		$note_ids   = $data_store->get_notes_with_name( self::NOTE_NAME );
-
-		if ( ! empty( $note_ids ) ) {
-			return false;
-		}
-
-		if ( $this->ads_service->is_setup_complete() ) {
-			return false;
-		}
-
-		if ( ! $this->gla_setup_for( 3 * DAY_IN_SECONDS ) ) {
-			return false;
-		}
-
-		return true;
+	public function get_name(): string {
+		return 'gla-setup-campaign';
 	}
 
 	/**
-	 * Deactivate the service.
+	 * Get the number of days after which to add the note.
+	 *
+	 * @since 1.11.0
+	 *
+	 * @return int
+	 */
+	protected function get_gla_setup_days(): int {
+		return 3;
+	}
+
+	/**
+	 * Set the title and content of the Note.
+	 *
+	 * @since 1.11.0
+	 *
+	 * @param NoteEntry $note
 	 *
 	 * @return void
 	 */
-	public function deactivate(): void {
-		if ( ! class_exists( Notes::class ) ) {
-			return;
+	protected function set_title_and_content( NoteEntry $note ): void {
+		if ( ! $this->ads_service->is_setup_started() ) {
+			$note->set_title( __( 'Launch ads to drive traffic and grow sales', 'google-listings-and-ads' ) );
+			$note->set_content(
+				__(
+					'Your products are ready for Google Ads! Get your products shown on Google exactly when shoppers are searching for the products you offer. For new Google Ads accounts, get $500 in ad credit when you spend $500 within your first 60 days. T&Cs apply.',
+					'google-listings-and-ads'
+				)
+			);
+			$note->add_action(
+				'setup-campaign',
+				__( 'Set up Google Ads', 'google-listings-and-ads' ),
+				$this->get_setup_ads_url(),
+				NoteEntry::E_WC_ADMIN_NOTE_ACTIONED,
+				true
+			);
+		} else {
+			$note->set_title( __( 'Finish connecting your Google Ads account', 'google-listings-and-ads' ) );
+			$note->set_content(
+				__(
+					'Your products are ready for Google Ads! Finish connecting your account, create your campaign, pick your budget, and easily measure the impact of your ads. Plus, Google will give you $500 USD in ad credit when you spend $500 for new accounts. T&Cs apply.',
+					'google-listings-and-ads'
+				)
+			);
+			$note->add_action(
+				'setup-campaign',
+				__( 'Complete Setup', 'google-listings-and-ads' ),
+				$this->get_setup_ads_url(),
+				NoteEntry::E_WC_ADMIN_NOTE_ACTIONED,
+				true
+			);
 		}
 
-		Notes::delete_notes_with_name( self::NOTE_NAME );
+		$note->add_action(
+			'setup-campaign-learn-more',
+			__( 'Learn more', 'google-listings-and-ads' ),
+			'https://docs.woocommerce.com/document/google-listings-and-ads/#get-500-in-free-ad-credits'
+		);
 	}
 }

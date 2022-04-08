@@ -6,6 +6,7 @@ if (!defined('ABSPATH')) exit;
 
 
 use MailPoet\Settings\SettingsController;
+use MailPoet\Statistics\Track\SubscriberHandler;
 use MailPoet\Subscribers\SubscriberActions;
 use MailPoet\WP\Functions as WPFunctions;
 
@@ -20,14 +21,19 @@ class Registration {
   /** @var WPFunctions */
   private $wp;
 
+  /** @var SubscriberHandler */
+  private $subscriberHandler;
+
   public function __construct(
     SettingsController $settings,
     WPFunctions $wp,
-    SubscriberActions $subscriberActions
+    SubscriberActions $subscriberActions,
+    SubscriberHandler $subscriberHandler
   ) {
     $this->settings = $settings;
     $this->subscriberActions = $subscriberActions;
     $this->wp = $wp;
+    $this->subscriberHandler = $subscriberHandler;
   }
 
   public function extendForm() {
@@ -53,8 +59,10 @@ class Registration {
       </label>
     </p>';
 
-    $this->wp->applyFilters('mailpoet_register_form_extend', $form);
+    $form = (string)$this->wp->applyFilters('mailpoet_register_form_extend', $form);
 
+    // We control the template and $form can be considered safe.
+    // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped, WordPressDotOrg.sniffs.OutputEscaping.UnescapedOutputParameter
     print $form;
   }
 
@@ -103,5 +111,8 @@ class Registration {
       ],
       $segmentIds
     );
+
+    // start subscriber tracking (by email, we don't have WP user ID yet)
+    $this->subscriberHandler->identifyByEmail($email);
   }
 }

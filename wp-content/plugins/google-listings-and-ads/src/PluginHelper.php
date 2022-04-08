@@ -129,23 +129,21 @@ trait PluginHelper {
 	}
 
 	/**
+	 * Get the coupon list view URL
+	 *
+	 * @return string
+	 */
+	protected function get_coupons_url(): string {
+		return admin_url( 'edit.php?post_type=shop_coupon' );
+	}
+
+	/**
 	 * Get the plugin documentation URL
 	 *
 	 * @return string
 	 */
 	protected function get_documentation_url(): string {
 		return 'https://docs.woocommerce.com/document/google-listings-and-ads/';
-	}
-
-	/**
-	 * Get the contact information setup URL
-	 *
-	 * @since 1.4.0
-	 *
-	 * @return string
-	 */
-	protected function get_contact_information_setup_url(): string {
-		return admin_url( 'admin.php?page=wc-admin&path=/google/settings&subpath=/edit-contact-information' );
 	}
 
 	/**
@@ -181,4 +179,16 @@ trait PluginHelper {
 	protected function get_site_url(): string {
 		return apply_filters( 'woocommerce_gla_site_url', get_home_url() );
 	}
+
+	/**
+	 * Removes the protocol (http:// or https://) and trailing slash from the provided URL.
+	 *
+	 * @param string $url
+	 *
+	 * @return string
+	 */
+	protected function strip_url_protocol( string $url ): string {
+		return preg_replace( '#^https?://#', '', untrailingslashit( $url ) );
+	}
+
 }

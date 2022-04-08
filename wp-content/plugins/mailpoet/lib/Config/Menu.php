@@ -5,6 +5,7 @@ namespace MailPoet\Config;
 if (!defined('ABSPATH')) exit;
 
 
+use MailPoet\AdminPages\Pages\Automation;
 use MailPoet\AdminPages\Pages\ExperimentalFeatures;
 use MailPoet\AdminPages\Pages\FormEditor;
 use MailPoet\AdminPages\Pages\Forms;
@@ -13,15 +14,16 @@ use MailPoet\AdminPages\Pages\Logs;
 use MailPoet\AdminPages\Pages\MP2Migration;
 use MailPoet\AdminPages\Pages\NewsletterEditor;
 use MailPoet\AdminPages\Pages\Newsletters;
-use MailPoet\AdminPages\Pages\Premium;
 use MailPoet\AdminPages\Pages\Segments;
 use MailPoet\AdminPages\Pages\Settings;
 use MailPoet\AdminPages\Pages\Subscribers;
 use MailPoet\AdminPages\Pages\SubscribersExport;
 use MailPoet\AdminPages\Pages\SubscribersImport;
+use MailPoet\AdminPages\Pages\Upgrade;
 use MailPoet\AdminPages\Pages\WelcomeWizard;
 use MailPoet\AdminPages\Pages\WooCommerceSetup;
 use MailPoet\DI\ContainerWrapper;
+use MailPoet\Features\FeaturesController;
 use MailPoet\Util\License\License;
 use MailPoet\WP\Functions as WPFunctions;
 
@@ -46,18 +48,23 @@ class Menu {
   /** @var Router */
   private $router;
 
+  /** @var FeaturesController */
+  private $featuresController;
+
   public function __construct(
     AccessControl $accessControl,
     WPFunctions $wp,
     ServicesChecker $servicesChecker,
     ContainerWrapper $container,
-    Router $router
+    Router $router,
+    FeaturesController $featuresController
   ) {
     $this->accessControl = $accessControl;
     $this->wp = $wp;
     $this->servicesChecker = $servicesChecker;
     $this->container = $container;
     $this->router = $router;
+    $this->featuresController = $featuresController;
   }
 
   public function init() {
@@ -81,25 +88,29 @@ class Menu {
       $this->wp->doAction('mailpoet_conflict_resolver_styles');
       $this->wp->doAction('mailpoet_conflict_resolver_scripts');
 
-      if ($_REQUEST['page'] === 'mailpoet-newsletter-editor') {
+      if (
+        isset($_REQUEST['page'])
+        && sanitize_text_field(wp_unslash($_REQUEST['page'])) === 'mailpoet-newsletter-editor'
+      ) {
         // Disable WP emojis to not interfere with the newsletter editor emoji handling
         $this->disableWPEmojis();
         $this->wp->addAction('admin_head', function() {
-          $fonts = 'Arvo:400,400i,700,700i'
-           . '|Lato:400,400i,700,700i'
-           . '|Lora:400,400i,700,700i'
-           . '|Merriweather:400,400i,700,700i'
-           . '|Merriweather+Sans:400,400i,700,700i'
-           . '|Noticia+Text:400,400i,700,700i'
-           . '|Open+Sans:400,400i,700,700i'
-           . '|Playfair+Display:400,400i,700,700i'
-           . '|Roboto:400,400i,700,700i'
-           . '|Source+Sans+Pro:400,400i,700,700i'
-           . '|Oswald:400,400i,700,700i'
-           . '|Raleway:400,400i,700,700i'
-           . '|Permanent+Marker:400,400i,700,700i'
-           . '|Pacifico:400,400i,700,700i';
-          echo '<link href="https://fonts.googleapis.com/css?family=' . $fonts . '" rel="stylesheet">';
+          echo '<link href="https://fonts.googleapis.com/css?family='
+            . 'Arvo:400,400i,700,700i'
+            . '|Lato:400,400i,700,700i'
+            . '|Lora:400,400i,700,700i'
+            . '|Merriweather:400,400i,700,700i'
+            . '|Merriweather+Sans:400,400i,700,700i'
+            . '|Noticia+Text:400,400i,700,700i'
+            . '|Open+Sans:400,400i,700,700i'
+            . '|Playfair+Display:400,400i,700,700i'
+            . '|Roboto:400,400i,700,700i'
+            . '|Source+Sans+Pro:400,400i,700,700i'
+            . '|Oswald:400,400i,700,700i'
+            . '|Raleway:400,400i,700,700i'
+            . '|Permanent+Marker:400,400i,700,700i'
+            . '|Pacifico:400,400i,700,700i'
+            . '" rel="stylesheet">';
         });
       }
     }
@@ -321,17 +332,17 @@ class Menu {
       ]
     );
 
-    // Premium page
+    // Upgrade page
     // Only show this page in menu if the Premium plugin is not activated
     $this->wp->addSubmenuPage(
       License::getLicense() ? true : self::MAIN_PAGE_SLUG,
-      $this->setPageTitle(__('Premium', 'mailpoet')),
-      $this->wp->__('Premium', 'mailpoet'),
+      $this->setPageTitle(__('Upgrade', 'mailpoet')),
+      $this->wp->__('Upgrade', 'mailpoet'),
       AccessControl::PERMISSION_ACCESS_PLUGIN_ADMIN,
-      'mailpoet-premium',
+      'mailpoet-upgrade',
       [
         $this,
-        'premium',
+        'upgrade',
       ]
     );
 
@@ -393,6 +404,18 @@ class Menu {
       'mailpoet-logs',
       [$this, 'logs']
     );
+
+    // Automation
+    if ($this->featuresController->isSupported(FeaturesController::AUTOMATION)) {
+      $this->wp->addSubmenuPage(
+        self::MAIN_PAGE_SLUG,
+        $this->setPageTitle('Automation'),
+        'Automation',
+        AccessControl::PERMISSION_MANAGE_EMAILS,
+        'mailpoet-automation',
+        [$this, 'automation']
+      );
+    }
   }
 
   public function disableWPEmojis() {
@@ -412,8 +435,8 @@ class Menu {
     $this->container->get(WooCommerceSetup::class)->render();
   }
 
-  public function premium() {
-    $this->container->get(Premium::class)->render();
+  public function upgrade() {
+    $this->container->get(Upgrade::class)->render();
   }
 
   public function settings() {
@@ -422,6 +445,10 @@ class Menu {
 
   public function help() {
     $this->container->get(Help::class)->render();
+  }
+
+  public function automation() {
+    $this->container->get(Automation::class)->render();
   }
 
   public function experimentalFeatures() {
@@ -481,7 +508,7 @@ class Menu {
       if (empty($_REQUEST['page'])) {
         return false;
       }
-      $screenId = $_REQUEST['page'];
+      $screenId = sanitize_text_field(wp_unslash($_REQUEST['page']));
     }
     if (!empty($exclude)) {
       foreach ($exclude as $slug) {
@@ -498,12 +525,15 @@ class Menu {
    * to display admin notices only
    */
   public static function addErrorPage(AccessControl $accessControl) {
-    if (!self::isOnMailPoetAdminPage()) {
+    if (!self::isOnMailPoetAdminPage() || !isset($_REQUEST['page'])) {
       return false;
     }
+
+    $page = sanitize_text_field(wp_unslash($_REQUEST['page']));
     // Check if page already exists
-    if (get_plugin_page_hook($_REQUEST['page'], '')
-      || WPFunctions::get()->getPluginPageHook($_REQUEST['page'], self::MAIN_PAGE_SLUG)
+    if (
+      get_plugin_page_hook($page, '')
+      || WPFunctions::get()->getPluginPageHook($page, self::MAIN_PAGE_SLUG)
     ) {
       return false;
     }
@@ -512,7 +542,7 @@ class Menu {
       'MailPoet',
       'MailPoet',
       AccessControl::PERMISSION_ACCESS_PLUGIN_ADMIN,
-      $_REQUEST['page'],
+      $page,
       [
         __CLASS__,
         'errorPageCallback',
@@ -526,7 +556,7 @@ class Menu {
 
   public function checkPremiumKey(ServicesChecker $checker = null) {
     $showNotices = isset($_SERVER['SCRIPT_NAME'])
-      && stripos($_SERVER['SCRIPT_NAME'], 'plugins.php') !== false;
+      && stripos(sanitize_text_field(wp_unslash($_SERVER['SCRIPT_NAME'])), 'plugins.php') !== false;
     $checker = $checker ?: $this->servicesChecker;
     $this->premiumKeyValid = $checker->isPremiumKeyValid($showNotices);
   }

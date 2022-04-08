@@ -12,7 +12,6 @@ use MailPoet\Segments\SegmentsRepository;
 use MailPoet\Subscribers\ImportExport\ImportExportFactory;
 use MailPoet\Subscribers\ImportExport\ImportExportRepository;
 use MailPoet\Util\Security;
-use MailPoet\WP\Functions as WPFunctions;
 use MailPoetVendor\XLSXWriter;
 
 class Export {
@@ -22,6 +21,7 @@ class Export {
   public $subscriberFields;
   public $subscriberCustomFields;
   public $formattedSubscriberFields;
+  public $formattedSubscriberFieldsWithList;
   public $exportPath;
   public $exportFile;
   public $exportFileURL;
@@ -67,6 +67,8 @@ class Export {
       $this->subscriberFields,
       $this->subscriberCustomFields
     );
+    $this->formattedSubscriberFieldsWithList = $this->formattedSubscriberFields;
+    $this->formattedSubscriberFieldsWithList[] = __('List', 'mailpoet');
     $this->exportPath = self::getExportPath();
     $this->exportFile = $this->getExportFile($this->exportFormatOption);
     $this->exportFileURL = $this->getExportFileURL($this->exportFile);
@@ -108,15 +110,14 @@ class Export {
 
   public function generateCSV(): int {
     $processedSubscribers = 0;
-    $formattedSubscriberFields = $this->formattedSubscriberFields;
+    $formattedSubscriberFields = $this->formattedSubscriberFieldsWithList;
     $cSVFile = fopen($this->exportFile, 'w');
     if ($cSVFile === false) {
       throw new \Exception(__('Failed opening file for export.', 'mailpoet'));
     }
     $formatCSV = function($row) {
-      return '"' . str_replace('"', '\"', $row) . '"';
+      return '"' . str_replace('"', '\"', (string)$row) . '"';
     };
-    $formattedSubscriberFields[] = WPFunctions::get()->__('List', 'mailpoet');
     // add UTF-8 BOM (3 bytes, hex EF BB BF) at the start of the file for
     // Excel to automatically recognize the encoding
     fwrite($cSVFile, chr(0xEF) . chr(0xBB) . chr(0xBF));
@@ -162,29 +163,35 @@ class Export {
         // sorted by segment name (due to slow queries when using ORDER BY and LIMIT),
         // we need to keep track of processed segments so that we do not create header
         // multiple times when switching from one segment to another and back.
-        if ((!count($processedSegments) || $lastSegment !== $currentSegment) &&
+        if (
+          (!count($processedSegments) || $lastSegment !== $currentSegment) &&
           (!in_array($lastSegment, $processedSegments) || !in_array($currentSegment, $processedSegments))
         ) {
           $this->writeXLSX(
             $xLSXWriter,
             $subscriber['segment_name'],
-            $this->formattedSubscriberFields
+            $this->formattedSubscriberFieldsWithList
           );
           $processedSegments[] = $currentSegment;
         }
         $lastSegment = ucwords($subscriber['segment_name']);
         // detect RTL language and set Excel to properly display the sheet
         $rTLRegex = '/\p{Arabic}|\p{Hebrew}/u';
-        if (!$xLSXWriter->rtl && (
+        if (
+          !$xLSXWriter->rtl && (
             preg_grep($rTLRegex, $subscriber) ||
-            preg_grep($rTLRegex, $this->formattedSubscriberFields))
+            preg_grep($rTLRegex, $this->formattedSubscriberFieldsWithList))
         ) {
           $xLSXWriter->rtl = true;
         }
+
+        $xlsxData = $this->formatSubscriberData($subscriber);
+        $xlsxData[] = ucwords($subscriber['segment_name']);
+
         $this->writeXLSX(
           $xLSXWriter,
           $lastSegment,
-          $this->formatSubscriberData($subscriber)
+          $xlsxData
         );
       }
     }

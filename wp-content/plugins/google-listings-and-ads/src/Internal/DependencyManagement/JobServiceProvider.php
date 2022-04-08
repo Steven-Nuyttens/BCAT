@@ -15,6 +15,7 @@ use Automattic\WooCommerce\GoogleListingsAndAds\Jobs\AbstractProductSyncerBatche
 use Automattic\WooCommerce\GoogleListingsAndAds\Jobs\ActionSchedulerJobInterface;
 use Automattic\WooCommerce\GoogleListingsAndAds\Jobs\ActionSchedulerJobMonitor;
 use Automattic\WooCommerce\GoogleListingsAndAds\Jobs\CleanupProductsJob;
+use Automattic\WooCommerce\GoogleListingsAndAds\Jobs\CleanupSyncedProducts;
 use Automattic\WooCommerce\GoogleListingsAndAds\Jobs\DeleteAllProducts;
 use Automattic\WooCommerce\GoogleListingsAndAds\Jobs\DeleteProducts;
 use Automattic\WooCommerce\GoogleListingsAndAds\Jobs\JobInitializer;
@@ -24,16 +25,21 @@ use Automattic\WooCommerce\GoogleListingsAndAds\Jobs\ProductSyncerJobInterface;
 use Automattic\WooCommerce\GoogleListingsAndAds\Jobs\ProductSyncStats;
 use Automattic\WooCommerce\GoogleListingsAndAds\Jobs\ResubmitExpiringProducts;
 use Automattic\WooCommerce\GoogleListingsAndAds\Jobs\UpdateAllProducts;
+use Automattic\WooCommerce\GoogleListingsAndAds\Jobs\DeleteCoupon;
+use Automattic\WooCommerce\GoogleListingsAndAds\Jobs\UpdateCoupon;
 use Automattic\WooCommerce\GoogleListingsAndAds\Jobs\UpdateProducts;
 use Automattic\WooCommerce\GoogleListingsAndAds\Jobs\Update\CleanupProductTargetCountriesJob;
 use Automattic\WooCommerce\GoogleListingsAndAds\Jobs\Update\PluginUpdate;
 use Automattic\WooCommerce\GoogleListingsAndAds\MerchantCenter\MerchantCenterService;
+use Automattic\WooCommerce\GoogleListingsAndAds\Coupon\CouponHelper;
+use Automattic\WooCommerce\GoogleListingsAndAds\Coupon\CouponSyncer;
 use Automattic\WooCommerce\GoogleListingsAndAds\Product\BatchProductHelper;
 use Automattic\WooCommerce\GoogleListingsAndAds\Product\ProductHelper;
 use Automattic\WooCommerce\GoogleListingsAndAds\Product\ProductRepository;
 use Automattic\WooCommerce\GoogleListingsAndAds\Product\ProductSyncer;
 use Automattic\WooCommerce\GoogleListingsAndAds\Event\StartProductSync;
-use Automattic\WooCommerce\GoogleListingsAndAds\Product\SyncerHooks;
+use Automattic\WooCommerce\GoogleListingsAndAds\Coupon;
+use Automattic\WooCommerce\GoogleListingsAndAds\Product;
 use Automattic\WooCommerce\GoogleListingsAndAds\Proxies\WC;
 
 defined( 'ABSPATH' ) || exit;
@@ -57,9 +63,10 @@ class JobServiceProvider extends AbstractServiceProvider {
 		ActionSchedulerInterface::class  => true,
 		AsyncActionRunner::class         => true,
 		ActionSchedulerJobMonitor::class => true,
+		Coupon\SyncerHooks::class        => true,
 		PluginUpdate::class              => true,
+		Product\SyncerHooks::class       => true,
 		ProductSyncStats::class          => true,
-		SyncerHooks::class               => true,
 		Service::class                   => true,
 		JobRepository::class             => true,
 	];
@@ -88,6 +95,11 @@ class JobServiceProvider extends AbstractServiceProvider {
 		$this->share_product_syncer_job( DeleteProducts::class );
 		$this->share_product_syncer_job( ResubmitExpiringProducts::class );
 		$this->share_product_syncer_job( CleanupProductsJob::class );
+		$this->share_product_syncer_job( CleanupSyncedProducts::class );
+
+		// share coupon syncer jobs.
+		$this->share_coupon_syncer_job( UpdateCoupon::class );
+		$this->share_coupon_syncer_job( DeleteCoupon::class );
 
 		$this->share_with_tags(
 			JobRepository::class,
@@ -100,9 +112,17 @@ class JobServiceProvider extends AbstractServiceProvider {
 		);
 
 		$this->share_with_tags(
-			SyncerHooks::class,
+			Product\SyncerHooks::class,
 			BatchProductHelper::class,
 			ProductHelper::class,
+			JobRepository::class,
+			MerchantCenterService::class,
+			WC::class
+		);
+
+		$this->share_with_tags(
+			Coupon\SyncerHooks::class,
+			CouponHelper::class,
 			JobRepository::class,
 			MerchantCenterService::class,
 			WC::class
@@ -161,5 +181,26 @@ class JobServiceProvider extends AbstractServiceProvider {
 				...$arguments
 			);
 		}
+	}
+
+	/**
+	 * Share a coupon syncer job class
+	 *
+	 * @param string $class        The class name to add.
+	 * @param mixed  ...$arguments Constructor arguments for the class.
+	 *
+	 * @throws InvalidClass When the given class does not implement the ProductSyncerJobInterface.
+	 */
+	protected function share_coupon_syncer_job( string $class, ...$arguments ) {
+		// Coupon related jobs also should implement ProductSyncerJobInterface.
+		$this->validate_interface( $class, ProductSyncerJobInterface::class );
+		$this->share_action_scheduler_job(
+			$class,
+			CouponHelper::class,
+			CouponSyncer::class,
+			WC::class,
+			MerchantCenterService::class,
+			...$arguments
+		);
 	}
 }

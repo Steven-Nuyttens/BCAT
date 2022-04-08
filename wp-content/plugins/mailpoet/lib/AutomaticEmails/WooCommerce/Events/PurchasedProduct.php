@@ -90,7 +90,7 @@ class PurchasedProduct {
     $woocommerceProducts = $woocommerceProducts->get_posts();
     /** @var \WP_Post[] $woocommerceProducts */
     if (empty($woocommerceProducts)) {
-      $this->loggerFactory->getLogger(self::SLUG)->addInfo(
+      $this->loggerFactory->getLogger(self::SLUG)->info(
         'no products found', ['search_query' => $productSearchQuery]
       );
       return;
@@ -108,7 +108,7 @@ class PurchasedProduct {
   public function scheduleEmailWhenProductIsPurchased($orderId) {
     $orderDetails = $this->helper->wcGetOrder($orderId);
     if (!$orderDetails || !$orderDetails->get_billing_email()) {
-      $this->loggerFactory->getLogger(self::SLUG)->addInfo(
+      $this->loggerFactory->getLogger(self::SLUG)->info(
         'Email not scheduled because the order customer was not found',
         ['order_id' => $orderId]
       );
@@ -119,7 +119,7 @@ class PurchasedProduct {
     $subscriber = Subscriber::getWooCommerceSegmentSubscriber($customerEmail);
 
     if (!$subscriber instanceof Subscriber) {
-      $this->loggerFactory->getLogger(self::SLUG)->addInfo(
+      $this->loggerFactory->getLogger(self::SLUG)->info(
         'Email not scheduled because the customer was not found as WooCommerce list subscriber',
         ['order_id' => $orderId, 'customer_email' => $customerEmail]
       );
@@ -132,12 +132,10 @@ class PurchasedProduct {
     $orderedProducts = array_values(array_filter($orderedProducts));
 
     $schedulingCondition = function(Newsletter $automaticEmail) use ($orderedProducts, $subscriber) {
-      $meta = $automaticEmail->getMeta();
-      if (empty($meta['option'])) return false;
-
-      $metaProducts = array_column($meta['option'], 'id');
-      $matchedProducts = array_intersect($metaProducts, $orderedProducts);
-      if (empty($matchedProducts)) return false;
+      $matchedProducts = $this->getProductIdsMatchingNewsletterTrigger($automaticEmail, $orderedProducts);
+      if (empty($matchedProducts)) {
+        return false;
+      }
 
       if ($this->repository->wasScheduledForSubscriber($automaticEmail->id, $subscriber->id)) {
         $sentAllProducts = $this->repository->alreadySentAllProducts($automaticEmail->id, $subscriber->id, 'orderedProducts', $matchedProducts);
@@ -147,7 +145,7 @@ class PurchasedProduct {
       return true;
     };
 
-    $this->loggerFactory->getLogger(self::SLUG)->addInfo(
+    $this->loggerFactory->getLogger(self::SLUG)->info(
       'Email scheduled', [
         'order_id' => $orderId,
         'customer_email' => $customerEmail,
@@ -159,7 +157,28 @@ class PurchasedProduct {
       self::SLUG,
       $schedulingCondition,
       $subscriber->id,
-      ['orderedProducts' => $orderedProducts]
+      ['orderedProducts' => $orderedProducts],
+      [$this, 'metaModifier']
     );
+  }
+
+  public function metaModifier(Newsletter $newsletter, array $meta): array {
+    $orderedProductIds = $meta['orderedProducts'] ?? null;
+    if (empty($orderedProductIds)) {
+      return $meta;
+    }
+    $meta['orderedProducts'] = $this->getProductIdsMatchingNewsletterTrigger($newsletter, $orderedProductIds);
+
+    return $meta;
+  }
+
+  private function getProductIdsMatchingNewsletterTrigger(Newsletter $automaticEmail, array $orderedProductIds): array {
+    $automaticEmailMeta = $automaticEmail->getMeta();
+    if (empty($automaticEmailMeta['option'])) {
+      return [];
+    }
+    $emailTriggeringProductIds = array_column($automaticEmailMeta['option'], 'id');
+
+    return array_intersect($emailTriggeringProductIds, $orderedProductIds);
   }
 }

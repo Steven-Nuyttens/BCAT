@@ -120,4 +120,19 @@ class WorkersFactory {
   public function createSubscribersCountCacheRecalculationWorker() {
     return $this->container->get(SubscribersCountCacheRecalculation::class);
   }
+
+  /** @return ReEngagementEmailsScheduler */
+  public function createReEngagementEmailsSchedulerWorker() {
+    return $this->container->get(ReEngagementEmailsScheduler::class);
+  }
+
+  /** @return SubscribersStatsReport */
+  public function createSubscribersStatsReportWorker() {
+    return $this->container->get(SubscribersStatsReport::class);
+  }
+
+  /** @return NewsletterTemplateThumbnails */
+  public function createNewsletterTemplateThumbnailsWorker() {
+    return $this->container->get(NewsletterTemplateThumbnails::class);
+  }
 }

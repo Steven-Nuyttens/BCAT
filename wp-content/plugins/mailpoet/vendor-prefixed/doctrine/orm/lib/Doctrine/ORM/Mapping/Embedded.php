@@ -1,2 +1,17 @@
 <?php
- namespace MailPoetVendor\Doctrine\ORM\Mapping; if (!defined('ABSPATH')) exit; use Attribute; use MailPoetVendor\Doctrine\Common\Annotations\Annotation\NamedArgumentConstructor; use MailPoetVendor\Doctrine\Deprecations\Deprecation; final class Embedded implements Annotation { public $class; public $columnPrefix; public function __construct(?string $class = null, $columnPrefix = null) { if ($class === null) { Deprecation::trigger('doctrine/orm', 'https://github.com/doctrine/orm/issues/8753', 'Passing no class is deprecated.'); } $this->class = $class; $this->columnPrefix = $columnPrefix; } } 
+declare (strict_types=1);
+namespace MailPoetVendor\Doctrine\ORM\Mapping;
+if (!defined('ABSPATH')) exit;
+use Attribute;
+use MailPoetVendor\Doctrine\Common\Annotations\Annotation\NamedArgumentConstructor;
+#[\Attribute(Attribute::TARGET_PROPERTY)]
+final class Embedded implements Annotation
+{
+ public $class;
+ public $columnPrefix;
+ public function __construct(?string $class = null, $columnPrefix = null)
+ {
+ $this->class = $class;
+ $this->columnPrefix = $columnPrefix;
+ }
+}

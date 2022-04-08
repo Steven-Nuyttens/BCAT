@@ -29,11 +29,11 @@ class Checkbox {
     $this->wp = $wp;
   }
 
-  public function render(array $block, array $formSettings): string {
+  public function render(array $block, array $formSettings, ?int $formId = null): string {
     $html = '';
 
     $fieldName = 'data[' . $this->rendererHelper->getFieldName($block) . ']';
-    $fieldValidation = $this->rendererHelper->getInputValidation($block);
+    $fieldValidation = $this->rendererHelper->getInputValidation($block, [], $formId);
 
     $html .= $this->rendererHelper->renderLabel($block, $formSettings);
 
@@ -43,10 +43,15 @@ class Checkbox {
     );
 
     $selectedValue = $this->rendererHelper->getFieldValue($block);
+    $isFieldRequired = $this->rendererHelper->getFieldIsRequired($block);
 
     foreach ($options as $option) {
+      $hiddenValue = $isFieldRequired ? '1' : '0'; // Mandatory Fields can not be Empty
+      $html .= '<input type="hidden" value="' . $hiddenValue . '"  name="' . $fieldName . '" />';
+
       $html .= '<label class="mailpoet_checkbox_label" '
         . $this->rendererHelper->renderFontStyle($formSettings) . '>';
+
       $html .= '<input type="checkbox" class="mailpoet_checkbox" ';
 
       $html .= 'name="' . $fieldName . '" ';
@@ -68,7 +73,7 @@ class Checkbox {
       $html .= '</label>';
     }
 
-    $html .= '<span class="mailpoet_error_' . $this->wp->escAttr($block['id']) . '"></span>';
+    $html .= '<span class="mailpoet_error_' . $this->wp->escAttr($block['id']) . ($formId ? '_' . $formId : '') . '"></span>';
 
     return $this->wrapper->render($block, $html);
   }

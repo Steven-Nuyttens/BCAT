@@ -22,6 +22,7 @@ use MailPoet\Models\ScheduledTask as ScheduledTaskModel;
 use MailPoet\Models\StatisticsNewsletters as StatisticsNewslettersModel;
 use MailPoet\Models\Subscriber as SubscriberModel;
 use MailPoet\Newsletter\NewslettersRepository;
+use MailPoet\Newsletter\Sending\ScheduledTasksRepository;
 use MailPoet\Segments\SegmentsRepository;
 use MailPoet\Segments\SubscribersFinder;
 use MailPoet\Tasks\Sending as SendingTask;
@@ -68,6 +69,9 @@ class SendingQueue {
   /** @var Links */
   private $links;
 
+  /** @var ScheduledTasksRepository */
+  private $scheduledTasksRepository;
+
   public function __construct(
     SendingErrorHandler $errorHandler,
     SendingThrottlingHandler $throttlingHandler,
@@ -79,6 +83,7 @@ class SendingQueue {
     SegmentsRepository $segmentsRepository,
     WPFunctions $wp,
     Links $links,
+    ScheduledTasksRepository $scheduledTasksRepository,
     $mailerTask = false,
     $newsletterTask = false
   ) {
@@ -95,6 +100,7 @@ class SendingQueue {
     $this->newslettersRepository = $newslettersRepository;
     $this->cronHelper = $cronHelper;
     $this->links = $links;
+    $this->scheduledTasksRepository = $scheduledTasksRepository;
   }
 
   public function process($timer = false) {
@@ -119,7 +125,7 @@ class SendingQueue {
 
       try {
         ScheduledTaskModel::touchAllByIds([$queue->taskId]);
-        $this->processSending($queue, $timer);
+        $this->processSending($queue, (int)$timer);
       } catch (\Exception $e) {
         $this->stopProgress($task);
         throw $e;
@@ -130,7 +136,7 @@ class SendingQueue {
   }
 
   private function processSending(SendingTask $queue, int $timer): void {
-    $this->loggerFactory->getLogger(LoggerFactory::TOPIC_NEWSLETTERS)->addInfo(
+    $this->loggerFactory->getLogger(LoggerFactory::TOPIC_NEWSLETTERS)->info(
       'sending queue processing',
       ['task_id' => $queue->taskId]
     );
@@ -141,7 +147,7 @@ class SendingQueue {
     // pre-process newsletter (render, replace shortcodes/links, etc.)
     $newsletter = $this->newsletterTask->preProcessNewsletter($newsletter, $queue);
     if (!$newsletter) {
-      $this->loggerFactory->getLogger(LoggerFactory::TOPIC_NEWSLETTERS)->addInfo(
+      $this->loggerFactory->getLogger(LoggerFactory::TOPIC_NEWSLETTERS)->info(
         'delete task in sending queue',
         ['task_id' => $queue->taskId]
       );
@@ -161,7 +167,7 @@ class SendingQueue {
     $newsletterSegmentsIds = $this->newsletterTask->getNewsletterSegments($newsletter);
     // Pause task in case some of related segments was deleted or trashed
     if ($newsletterSegmentsIds && !$this->checkDeletedSegments($newsletterSegmentsIds)) {
-      $this->loggerFactory->getLogger(LoggerFactory::TOPIC_NEWSLETTERS)->addInfo(
+      $this->loggerFactory->getLogger(LoggerFactory::TOPIC_NEWSLETTERS)->info(
         'pause task in sending queue due deleted or trashed segment',
         ['task_id' => $queue->taskId]
       );
@@ -173,15 +179,16 @@ class SendingQueue {
 
     // get subscribers
     $subscriberBatches = new BatchIterator($queue->taskId, $this->getBatchSize());
+    /** @var int[] $subscribersToProcessIds - it's required for PHPStan */
     foreach ($subscriberBatches as $subscribersToProcessIds) {
-      $this->loggerFactory->getLogger(LoggerFactory::TOPIC_NEWSLETTERS)->addInfo(
+      $this->loggerFactory->getLogger(LoggerFactory::TOPIC_NEWSLETTERS)->info(
         'subscriber batch processing',
         ['newsletter_id' => $newsletter->id, 'task_id' => $queue->taskId, 'subscriber_batch_count' => count($subscribersToProcessIds)]
       );
       if (!empty($newsletterSegmentsIds[0])) {
         // Check that subscribers are in segments
         $foundSubscribersIds = $this->subscribersFinder->findSubscribersInSegments($subscribersToProcessIds, $newsletterSegmentsIds);
-        $foundSubscribers = SubscriberModel::whereIn('id', $subscribersToProcessIds)
+        $foundSubscribers = empty($foundSubscribersIds) ? [] : SubscriberModel::whereIn('id', $foundSubscribersIds)
           ->whereNull('deleted_at')
           ->findMany();
       } else {
@@ -209,7 +216,7 @@ class SendingQueue {
           continue;
         }
       }
-      $this->loggerFactory->getLogger(LoggerFactory::TOPIC_NEWSLETTERS)->addInfo(
+      $this->loggerFactory->getLogger(LoggerFactory::TOPIC_NEWSLETTERS)->info(
         'before queue chunk processing',
         ['newsletter_id' => $newsletter->id, 'task_id' => $queue->taskId, 'found_subscribers_count' => count($foundSubscribers)]
       );
@@ -223,12 +230,12 @@ class SendingQueue {
         $foundSubscribers,
         $timer
       );
-      $this->loggerFactory->getLogger(LoggerFactory::TOPIC_NEWSLETTERS)->addInfo(
+      $this->loggerFactory->getLogger(LoggerFactory::TOPIC_NEWSLETTERS)->info(
         'after queue chunk processing',
         ['newsletter_id' => $newsletter->id, 'task_id' => $queue->taskId]
       );
       if ($queue->status === ScheduledTaskModel::STATUS_COMPLETED) {
-        $this->loggerFactory->getLogger(LoggerFactory::TOPIC_NEWSLETTERS)->addInfo(
+        $this->loggerFactory->getLogger(LoggerFactory::TOPIC_NEWSLETTERS)->info(
           'completed newsletter sending',
           ['newsletter_id' => $newsletter->id, 'task_id' => $queue->taskId]
         );
@@ -291,6 +298,7 @@ class SendingQueue {
         $preparedSubscribersIds = [];
         $unsubscribeUrls = [];
         $statistics = [];
+        $metas = [];
       }
     }
     if ($processingMethod === 'bulk') {
@@ -416,13 +424,14 @@ class SendingQueue {
   }
 
   private function reScheduleBounceTask() {
-    $bounceTasks = ScheduledTask::findFutureScheduledByType(Bounce::TASK_TYPE);
+    $bounceTasks = $this->scheduledTasksRepository->findFutureScheduledByType(Bounce::TASK_TYPE);
     if (count($bounceTasks)) {
       $bounceTask = reset($bounceTasks);
-      if (Carbon::createFromTimestamp((int)current_time('timestamp'))->addHours(42)->lessThan($bounceTask->scheduledAt)) {
+      if (Carbon::createFromTimestamp((int)current_time('timestamp'))->addHours(42)->lessThan($bounceTask->getScheduledAt())) {
         $randomOffset = rand(-6 * 60 * 60, 6 * 60 * 60);
-        $bounceTask->scheduledAt = Carbon::createFromTimestamp((int)current_time('timestamp'))->addSeconds((36 * 60 * 60) + $randomOffset);
-        $bounceTask->save();
+        $bounceTask->setScheduledAt(Carbon::createFromTimestamp((int)current_time('timestamp'))->addSeconds((36 * 60 * 60) + $randomOffset));
+        $this->scheduledTasksRepository->persist($bounceTask);
+        $this->scheduledTasksRepository->flush();
       }
     }
   }

@@ -37,8 +37,10 @@ defined( 'ABSPATH' ) || exit;
 class WCProductAdapter extends GoogleProduct implements Validatable {
 	use PluginHelper;
 
-	public const AVAILABILITY_IN_STOCK     = 'in stock';
-	public const AVAILABILITY_OUT_OF_STOCK = 'out of stock';
+	public const AVAILABILITY_IN_STOCK     = 'in_stock';
+	public const AVAILABILITY_OUT_OF_STOCK = 'out_of_stock';
+	public const AVAILABILITY_BACKORDER    = 'backorder';
+	public const AVAILABILITY_PREORDER     = 'preorder';
 
 	public const IMAGE_SIZE_FULL = 'full';
 
@@ -115,6 +117,7 @@ class WCProductAdapter extends GoogleProduct implements Validatable {
 
 		$this->map_wc_product_id()
 			 ->map_wc_general_attributes()
+			 ->map_product_categories()
 			 ->map_wc_product_image( self::IMAGE_SIZE_FULL )
 			 ->map_wc_availability()
 			 ->map_wc_product_shipping()
@@ -173,8 +176,70 @@ class WCProductAdapter extends GoogleProduct implements Validatable {
 		if ( $this->is_variation() ) {
 			$this->setItemGroupId( $this->parent_wc_product->get_id() );
 		}
-
 		return $this;
+	}
+
+	/**
+	 * Map WooCommerce product categories to Google product types.
+	 *
+	 * @return $this
+	 */
+	protected function map_product_categories() {
+		// set product type using merchants defined product categories
+		$base_product_id      = $this->is_variation() ? $this->parent_wc_product->get_id() : $this->wc_product->get_id();
+		$product_category_ids = wc_get_product_cat_ids( $base_product_id );
+		if ( ! empty( $product_category_ids ) ) {
+			$google_product_types = self::convert_product_types( $product_category_ids );
+			do_action(
+				'woocommerce_gla_debug_message',
+				sprintf(
+					'Product category (ID: %s): %s.',
+					$base_product_id,
+					json_encode( $google_product_types )
+				),
+				__METHOD__
+			);
+			$this->setProductTypes( $google_product_types );
+		}
+		return $this;
+	}
+	/**
+	 * Covert WooCommerce product categories to product_type, which follows Google requirements:
+	 * https://support.google.com/merchants/answer/6324406?hl=en#
+	 *
+	 * @param int[] $category_ids
+	 *
+	 * @return array
+	 */
+	public static function convert_product_types( $category_ids ): array {
+		$product_types = [];
+		foreach ( array_unique( $category_ids ) as $category_id ) {
+			if ( ! is_int( $category_id ) ) {
+				continue;
+			}
+
+			$product_type = self::get_product_type_by_id( $category_id );
+			array_push( $product_types, $product_type );
+		}
+
+		return $product_types;
+	}
+
+	/**
+	 *
+	 * @param int $category_id
+	 *
+	 * @return string
+	 */
+	protected static function get_product_type_by_id( int $category_id ): string {
+		$category_names = [];
+		do {
+			$term = get_term_by( 'id', $category_id, 'product_cat', 'ARRAY_A' );
+			array_push( $category_names, $term['name'] );
+			$category_id = $term['parent'];
+		} while ( ! empty( $term['parent'] ) );
+
+		return implode( ' > ', array_reverse( $category_names ) );
 	}
 
 	/**
@@ -183,10 +248,18 @@ class WCProductAdapter extends GoogleProduct implements Validatable {
 	 * @return $this
 	 */
 	protected function map_wc_product_id(): WCProductAdapter {
-		$offer_id = "{$this->get_slug()}_{$this->wc_product->get_id()}";
-		$this->setOfferId( $offer_id );
-
+		$this->setOfferId( self::get_google_product_offer_id( $this->get_slug(), $this->wc_product->get_id() ) );
 		return $this;
+	}
+
+	/**
+	 *
+	 * @param string $slug
+	 * @param int    $product_id
+	 * @return string
+	 */
+	public static function get_google_product_offer_id( string $slug, int $product_id ): string {
+		return "{$slug}_{$product_id}";
 	}
 
 	/**
@@ -296,6 +369,10 @@ class WCProductAdapter extends GoogleProduct implements Validatable {
 		);
 		// Uniquify the set of additional images
 		$gallery_image_links = array_unique( $gallery_image_links, SORT_REGULAR );
+
+		// Limit additional image links up to 10
+		$gallery_image_links = array_slice( $gallery_image_links, 0, 10 );
+
 		$this->setAdditionalImageLinks( $gallery_image_links );
 
 		return $this;
@@ -307,8 +384,14 @@ class WCProductAdapter extends GoogleProduct implements Validatable {
 	 * @return $this
 	 */
 	protected function map_wc_availability() {
-		// todo: include 'preorder' status (maybe a new field for products / or using an extension?)
-		$availability = $this->wc_product->is_in_stock() ? self::AVAILABILITY_IN_STOCK : self::AVAILABILITY_OUT_OF_STOCK;
+		if ( ! $this->wc_product->is_in_stock() ) {
+			$availability = self::AVAILABILITY_OUT_OF_STOCK;
+		} elseif ( $this->wc_product->is_on_backorder( 1 ) ) {
+			$availability = self::AVAILABILITY_BACKORDER;
+		} else {
+			$availability = self::AVAILABILITY_IN_STOCK;
+		}
+
 		$this->setAvailability( $availability );
 
 		return $this;
@@ -328,6 +411,12 @@ class WCProductAdapter extends GoogleProduct implements Validatable {
 
 			$this->map_wc_shipping_dimensions( $dimension_unit )
 				 ->map_wc_shipping_weight( $weight_unit );
+		}
+
+		// Set the product's shipping class slug as the shipping label.
+		$shipping_class = $this->wc_product->get_shipping_class();
+		if ( ! empty( $shipping_class ) ) {
+			$this->setShippingLabel( $shipping_class );
 		}
 
 		return $this;
@@ -672,6 +761,7 @@ class WCProductAdapter extends GoogleProduct implements Validatable {
 		$metadata->addGetterConstraint( 'salePrice', new GooglePriceConstraint() );
 
 		$metadata->addConstraint( new Assert\Callback( 'validate_item_group_id' ) );
+		$metadata->addConstraint( new Assert\Callback( 'validate_availability' ) );
 
 		$metadata->addPropertyConstraint( 'gtin', new Assert\Regex( '/^\d{8}(?:\d{4,6})?$/' ) );
 		$metadata->addPropertyConstraint( 'mpn', new Assert\Type( 'alnum' ) ); // alphanumeric
@@ -715,6 +805,23 @@ class WCProductAdapter extends GoogleProduct implements Validatable {
 		if ( $this->is_variation() && empty( $this->getItemGroupId() ) ) {
 			$context->buildViolation( 'ItemGroupId needs to be set for variable products.' )
 					->atPath( 'itemGroupId' )
+					->addViolation();
+		}
+	}
+
+	/**
+	 * Used by the validator to check if the availability date is set for product available as `backorder` or
+	 * `preorder`.
+	 *
+	 * @param ExecutionContextInterface $context
+	 */
+	public function validate_availability( ExecutionContextInterface $context ) {
+		if (
+			( self::AVAILABILITY_BACKORDER === $this->getAvailability() || self::AVAILABILITY_PREORDER === $this->getAvailability() ) &&
+			empty( $this->getAvailabilityDate() )
+		) {
+			$context->buildViolation( 'Availability date is required if you set the product\'s availability to backorder or pre-order.' )
+					->atPath( 'availabilityDate' )
 					->addViolation();
 		}
 	}

@@ -33,7 +33,7 @@ class Beacon {
     $this->subscribersFeature = $subscribersFeature;
   }
 
-  public function getData() {
+  public function getData($maskApiKey = false) {
     global $wpdb;
     $dbVersion = $wpdb->get_var('SELECT @@VERSION');
     $mta = $this->settings->get('mta');
@@ -41,6 +41,11 @@ class Beacon {
     $currentUser = WPFunctions::get()->wpGetCurrentUser();
     $sender = $this->settings->get('sender', ['address' => null]);
     $premiumKey = $this->settings->get(Bridge::PREMIUM_KEY_SETTING_NAME) ?: $this->settings->get(Bridge::API_KEY_SETTING_NAME);
+
+    if ($maskApiKey) {
+      $premiumKey = $this->maskApiKey($premiumKey);
+    }
+
     $cronHelper = ContainerWrapper::getInstance()->get(CronHelper::class);
     $cronPingUrl = $cronHelper->getCronUrl(
       CronDaemon::ACTION_PING
@@ -54,7 +59,7 @@ class Beacon {
       'MailPoet Premium/MSS key' => $premiumKey,
       'WordPress version' => $this->wp->getBloginfo('version'),
       'Database version' => $dbVersion,
-      'Web server' => (!empty($_SERVER["SERVER_SOFTWARE"])) ? $_SERVER["SERVER_SOFTWARE"] : 'N/A',
+      'Web server' => (!empty($_SERVER["SERVER_SOFTWARE"])) ? sanitize_text_field(wp_unslash($_SERVER["SERVER_SOFTWARE"])) : 'N/A',
       'Server OS' => (function_exists('php_uname')) ? utf8_encode(php_uname()) : 'N/A',
       'WP_MEMORY_LIMIT' => WP_MEMORY_LIMIT,
       'WP_MAX_MEMORY_LIMIT' => WP_MAX_MEMORY_LIMIT,
@@ -73,6 +78,7 @@ class Beacon {
         $mta['frequency']['emails'],
         $mta['frequency']['interval']
       ),
+      "Send all site's emails with" => $this->settings->get('send_transactional_emails') ? 'current sending method' : 'default WordPress sending method',
       'Task Scheduler method' => $this->settings->get('cron_trigger.method'),
       'Cron ping URL' => $cronPingUrl,
       'Default FROM address' => $this->settings->get('sender.address'),
@@ -81,5 +87,13 @@ class Beacon {
       'Total number of subscribers' => $this->subscribersFeature->getSubscribersCount(),
       'Plugin installed at' => $this->settings->get('installed_at'),
     ];
+  }
+
+  protected function maskApiKey($key) {
+    // the length of this particular key is an even number.
+    // for odd lengths this method will change the total number of characters (which shouldn't be a problem in this context).
+    $halfKeyLength = (int)(strlen($key) / 2);
+
+    return substr($key, 0, $halfKeyLength) . str_repeat('*', $halfKeyLength);
   }
 }

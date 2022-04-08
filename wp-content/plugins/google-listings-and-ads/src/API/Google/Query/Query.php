@@ -128,6 +128,22 @@ abstract class Query implements QueryInterface {
 	}
 
 	/**
+	 * Add a where date between clause to the query.
+	 *
+	 * @since 1.7.0
+	 *
+	 * @link https://developers.google.com/shopping-content/guides/reports/query-language/date-ranges
+	 *
+	 * @param string $after  Start of date range. In ISO 8601(YYYY-MM-DD) format.
+	 * @param string $before End of date range. In ISO 8601(YYYY-MM-DD) format.
+	 *
+	 * @return QueryInterface
+	 */
+	public function where_date_between( string $after, string $before ): QueryInterface {
+		return $this->where( 'segments.date', [ $after, $before ], 'BETWEEN' );
+	}
+
+	/**
 	 * Set the where relation for the query.
 	 *
 	 * @param string $relation
@@ -221,6 +237,7 @@ abstract class Query implements QueryInterface {
 			case 'IN':
 			case 'NOT IN':
 			case 'BETWEEN':
+			case 'IS NOT NULL':
 				// These are all valid.
 				return;
 
@@ -317,6 +334,8 @@ abstract class Query implements QueryInterface {
 				);
 			} elseif ( 'BETWEEN' === $compare ) {
 				$value = "'{$this->escape( $where['value'][0] )}' AND '{$this->escape( $where['value'][1] )}'";
+			} elseif ( 'IS NOT NULL' === $compare ) {
+				$value = '';
 			} else {
 				$value = "'{$this->escape( $where['value'] )}'";
 			}

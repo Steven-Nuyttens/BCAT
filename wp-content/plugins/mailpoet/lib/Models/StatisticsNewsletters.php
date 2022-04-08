@@ -14,9 +14,10 @@ class StatisticsNewsletters extends Model {
   public static function createMultiple(array $data) {
     $values = [];
     foreach ($data as $value) {
-      if (!empty($value['newsletter_id']) &&
-         !empty($value['subscriber_id']) &&
-         !empty($value['queue_id'])
+      if (
+        !empty($value['newsletter_id']) &&
+        !empty($value['subscriber_id']) &&
+        !empty($value['queue_id'])
       ) {
         $values[] = $value['newsletter_id'];
         $values[] = $value['subscriber_id'];
@@ -28,7 +29,7 @@ class StatisticsNewsletters extends Model {
       'INSERT INTO `' . self::$_table . '` ' .
       '(newsletter_id, subscriber_id, queue_id) ' .
       'VALUES ' . rtrim(
-        str_repeat('(?,?,?), ', count($values) / 3),
+        str_repeat('(?,?,?), ', (int)(count($values) / 3)),
         ', '
       ),
       $values
